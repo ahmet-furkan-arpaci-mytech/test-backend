@@ -1,0 +1,557 @@
+{
+  "info": {
+    "name": "News Backend API",
+    "description": "Covers the public user flow, news/category listings, saved news, and Twitter follow actions. Run **Register user** + **Login user** first so `{{authToken}}` and `{{currentUserId}}` are populated. `{{baseUrl}}` defaults to http://localhost:4000/api/v1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Users",
+      "description": "Register a new user and authenticate to receive a Bearer token.",
+      "item": [
+        {
+          "name": "Register user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Tester\",\n  \"email\": \"postman.tester@example.com\",\n  \"password\": \"P@ssword123\",\n  \"imageUrl\": \"https://i.pravatar.cc/150?img=47\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users"
+            },
+            "description": "Creates a user that can be used for the rest of the collection."
+          },
+          "response": []
+        },
+        {
+          "name": "Login user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.tester@example.com\",\n  \"password\": \"P@ssword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login"
+            },
+            "description": "Authenticates and stores `{{authToken}}` plus the current user ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.result?.accessToken) {",
+                  "  pm.environment.set(\"authToken\", body.result.accessToken);",
+                  "}",
+                  "if (body.result?.user?.id) {",
+                  "  pm.environment.set(\"currentUserId\", body.result.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "description": "Creates and lists categories; the with-news endpoint demonstrates filtering.",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories"
+            },
+            "description": "Captures the first category ID so it can be reused for news or saved news."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const categories = body.result || [];",
+                  "if (Array.isArray(categories) && categories.length) {",
+                  "  const first = categories[0];",
+                  "  const id = first.id || first._id;",
+                  "  if (id) {",
+                  "    pm.environment.set(\"categoryId\", id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Global Affairs\",\n  \"description\": \"Coverage of international developments.\",\n  \"colorCode\": \"#1D9BF0\",\n  \"imageUrl\": \"https://picsum.photos/seed/categories/640/360\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories"
+            },
+            "description": "Adds a fresh category."
+          },
+          "response": []
+        },
+        {
+          "name": "List categories with news",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/with-news?page=1&pageSize=5&isLatest=true&sourceIds={{sourceId}}&isMySourced=false"
+            },
+            "description": "Demonstrates the paginated view that joins categories with recent news."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "News",
+      "description": "List, filter, create and browse news items.",
+      "item": [
+        {
+          "name": "List news",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/news?page=1&pageSize=10"
+            },
+            "description": "Stores a sample `{{sourceId}}` and `{{newsId}}` for downstream requests."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const page = body.result || {};",
+                  "const items = page.items || [];",
+                  "if (Array.isArray(items) && items.length) {",
+                  "  const first = items[0];",
+                  "  const sourceId = first.sourceId || first._sourceId;",
+                  "  const newsId = first.id || first._id;",
+                  "  if (sourceId) { pm.environment.set(\"sourceId\", sourceId); }",
+                  "  if (newsId) { pm.environment.set(\"newsId\", newsId); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Filter news",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/news/filter?page=1&pageSize=5&isLatest=true&isPopular=false&sourceIds={{sourceId}}"
+            },
+            "description": "Applies the same filter logic without the joined relations."
+          },
+          "response": []
+        },
+        {
+          "name": "List news by category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/news/category/{{categoryId}}?page=1&pageSize=5"
+            },
+            "description": "Retrieves news inside a single category."
+          },
+          "response": []
+        },
+        {
+          "name": "Create news",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman-generated bulletin\",\n  \"content\": \"Quick follow-up on the latest development via the API.\",\n  \"imageUrl\": \"https://picsum.photos/seed/postmannews/800/600\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"sourceId\": \"{{sourceId}}\",\n  \"isLatest\": true,\n  \"isPopular\": false,\n  \"publishedAt\": \"2025-12-01T10:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/news"
+            },
+            "description": "Creates a news item. Ensure `{{categoryId}}` and `{{sourceId}}` are populated from earlier list calls."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const item = body.result || {};",
+                  "const newsId = item.id || item._id;",
+                  "const sourceId = item.sourceId || item._sourceId;",
+                  "const categoryId = item.categoryId || item._categoryId;",
+                  "if (newsId) { pm.environment.set(\"newsId\", newsId); }",
+                  "if (sourceId) { pm.environment.set(\"sourceId\", sourceId); }",
+                  "if (categoryId) { pm.environment.set(\"categoryId\", categoryId); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Saved News",
+      "description": "Demonstrates saving, listing, and deleting a bookmarked news item.",
+      "item": [
+        {
+          "name": "Save news",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{currentUserId}}\",\n  \"newsId\": \"{{newsId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/saved-news"
+            },
+            "description": "Persists a saved news entry so it can be listed and removed."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const saved = body.result || {};",
+                  "const savedId = saved.id || saved._id;",
+                  "if (savedId) {",
+                  "  pm.environment.set(\"savedNewsId\", savedId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List saved news by user",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saved-news/user/{{currentUserId}}"
+            },
+            "description": "Returns every saved news entry for the authenticated test user."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete saved news",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saved-news/{{savedNewsId}}?userId={{currentUserId}}"
+            },
+            "description": "Removes the saved news entry that belongs to the running user."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Twitter",
+      "description": "Runs the account list, create, follow and unfollow flows.",
+      "item": [
+        {
+          "name": "List twitter accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/twitter/accounts?page=1&pageSize=5"
+            },
+            "description": "Captures an account ID for the follow/unfollow requests."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const page = body.result || {};",
+                  "const items = page.items || [];",
+                  "if (Array.isArray(items) && items.length) {",
+                  "  const first = items[0];",
+                  "  const id = first.id || first._id;",
+                  "  if (id) {",
+                  "    pm.environment.set(\"twitterAccountId\", id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create twitter account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"@postman_handle\",\n  \"displayName\": \"Postman Handle\",\n  \"imageUrl\": \"https://i.pravatar.cc/150?img=55\",\n  \"bio\": \"Automated tester account\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/twitter/accounts"
+            },
+            "description": "Ensures we have a writable Twitter account reference."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const account = body.result || {};",
+                  "const accountId = account.id || account._id;",
+                  "if (accountId) {",
+                  "  pm.environment.set(\"twitterAccountId\", accountId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Follow twitter account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/twitter/accounts/{{twitterAccountId}}/follow"
+            },
+            "description": "Follows the captured Twitter account for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "List followed twitter accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/twitter/accounts/followed?page=1&pageSize=5"
+            },
+            "description": "Verifies the follow list returned for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Unfollow twitter account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/twitter/accounts/{{twitterAccountId}}/follow"
+            },
+            "description": "Cleans up the follow entry created during the test."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "currentUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sourceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newsId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "savedNewsId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "twitterAccountId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

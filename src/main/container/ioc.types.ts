@@ -1,0 +1,41 @@
+export const DI_TYPES = {
+  UserRepository: Symbol.for("UserRepository"),
+  CategoryRepository: Symbol.for("CategoryRepository"),
+  NewsRepository: Symbol.for("NewsRepository"),
+  SavedNewsRepository: Symbol.for("SavedNewsRepository"),
+  UserSourceFollowRepository: Symbol.for("UserSourceFollowRepository"),
+  SourceRepository: Symbol.for("SourceRepository"),
+  TwitterAccountRepository: Symbol.for("TwitterAccountRepository"),
+  TwitterAccountFollowRepository: Symbol.for("TwitterAccountFollowRepository"),
+  TwitterRepository: Symbol.for("TwitterRepository"),
+  PasswordService: Symbol.for("PasswordService"),
+  TokenService: Symbol.for("TokenService"),
+  IdGenerator: Symbol.for("IdGenerator"),
+  CreateUserUseCase: Symbol.for("CreateUserUseCase"),
+  AuthenticateUserUseCase: Symbol.for("AuthenticateUserUseCase"),
+  CreateNewsUseCase: Symbol.for("CreateNewsUseCase"),
+  ListNewsUseCase: Symbol.for("ListNewsUseCase"),
+  GetNewsByCategoryUseCase: Symbol.for("GetNewsByCategoryUseCase"),
+  SaveNewsUseCase: Symbol.for("SaveNewsUseCase"),
+  ListSavedNewsUseCase: Symbol.for("ListSavedNewsUseCase"),
+  RemoveSavedNewsUseCase: Symbol.for("RemoveSavedNewsUseCase"),
+  ListSourcesUseCase: Symbol.for("ListSourcesUseCase"),
+  ListFollowedSourcesUseCase: Symbol.for("ListFollowedSourcesUseCase"),
+  UpdateFollowedSourcesUseCase: Symbol.for("UpdateFollowedSourcesUseCase"),
+  RemoveAllFollowedSourcesUseCase: Symbol.for(
+    "RemoveAllFollowedSourcesUseCase"
+  ),
+  CreateCategoryUseCase: Symbol.for("CreateCategoryUseCase"),
+  ListCategoriesUseCase: Symbol.for("ListCategoriesUseCase"),
+  ListCategoriesWithNewsUseCase: Symbol.for("ListCategoriesWithNewsUseCase"),
+  CreateTwitterAccountUseCase: Symbol.for("CreateTwitterAccountUseCase"),
+  ListTwitterAccountsUseCase: Symbol.for("ListTwitterAccountsUseCase"),
+  FollowTwitterAccountUseCase: Symbol.for("FollowTwitterAccountUseCase"),
+  UnfollowTwitterAccountUseCase: Symbol.for("UnfollowTwitterAccountUseCase"),
+  ListFollowedTwitterAccountsUseCase: Symbol.for(
+    "ListFollowedTwitterAccountsUseCase"
+  ),
+  ListTweetsUseCase: Symbol.for("ListTweetsUseCase"),
+
+  TwitterController: Symbol.for("TwitterController"),
+};
