@@ -6,7 +6,6 @@ import { ListNewsUseCase } from "../../application/use-cases/news/list-news.use-
 import { GetNewsByCategoryUseCase } from "../../application/use-cases/news/get-news-by-category.use-case.js";
 import { ListSavedNewsUseCase } from "../../application/use-cases/saved-news/list-saved-news.use-case.js";
 import { ListCategoriesUseCase } from "../../application/use-cases/category/list-categories.use-case.js";
-import { ListFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/list-followed-sources.use-case.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
 import { PaginatedResult } from "../../domain/common/paginated-result.js";
 import { News } from "../../domain/news/news.js";
@@ -44,8 +43,6 @@ export class NewsController {
     private readonly listNewsUseCase: ListNewsUseCase,
     @inject(DI_TYPES.GetNewsByCategoryUseCase)
     private readonly getNewsByCategoryUseCase: GetNewsByCategoryUseCase,
-    @inject(DI_TYPES.ListFollowedSourcesUseCase)
-    private readonly listFollowedSourcesUseCase: ListFollowedSourcesUseCase,
     @inject(DI_TYPES.ListSavedNewsUseCase)
     private readonly listSavedNewsUseCase: ListSavedNewsUseCase,
     @inject(DI_TYPES.ListCategoriesUseCase)
@@ -59,41 +56,10 @@ export class NewsController {
   private parseFilterQuery(req: Request) {
     const page = Number(req.query.page ?? 1);
     const pageSize = Number(req.query.pageSize ?? 10);
-    const sourceParam = (req.query.sourceIds ?? "") as string;
-    const sourceIds = sourceParam
-      ? sourceParam
-          .split(",")
-          .map((id) => id.trim())
-          .filter(Boolean)
-      : [];
-    const isMySourced = parseBooleanQuery(req.query.isMySourced);
     const isLatest = parseBooleanQuery(req.query.isLatest);
     const isPopular = parseBooleanQuery(req.query.isPopular);
 
-    return { page, pageSize, sourceIds, isMySourced, isLatest, isPopular };
-  }
-
-  private async resolveSourceIds(
-    userId: string | undefined,
-    sourceIds: string[],
-    isMySourced: boolean
-  ): Promise<string[]> {
-    if (!isMySourced) {
-      return sourceIds;
-    }
-
-    if (!userId) {
-      throw new Error("User context required");
-    }
-
-    if (sourceIds.length === 0) {
-      const followedSources = await this.listFollowedSourcesUseCase.execute(
-        userId
-      );
-      sourceIds = followedSources.map((source) => source.id);
-    }
-
-    return sourceIds;
+    return { page, pageSize, isLatest, isPopular };
   }
 
   private async loadCategoryMetadata(): Promise<Record<string, CategoryMeta>> {
@@ -128,9 +94,9 @@ export class NewsController {
         isLatest: news.isLatest,
         isPopular: news.isPopular,
         sourceName: news.sourceName,
-    categoryName: news.categoryName ?? categoryMetadata[news.categoryId]?.name,
-    isSaved: savedIds.has(news.id),
-    colorCode: categoryMetadata[news.categoryId]?.colorCode,
+        categoryName: news.categoryName ?? categoryMetadata[news.categoryId]?.name,
+        isSaved: savedIds.has(news.id),
+        colorCode: categoryMetadata[news.categoryId]?.colorCode,
       })),
     };
   }
@@ -163,16 +129,6 @@ export class NewsController {
    *         schema:
    *           type: boolean
    *         description: When true, return only news marked as popular
-   *       - in: query
-   *         name: isMySourced
-   *         schema:
-   *           type: boolean
-   *         description: When true, return news from followed sources
-   *       - in: query
-   *         name: sourceIds
-   *         schema:
-   *           type: string
-   *         description: Optional comma-separated list of source IDs (overrides followed sources)
    *     responses:
    *       200:
    *         description: Paginated news list
@@ -182,52 +138,23 @@ export class NewsController {
    *               $ref: "#/components/schemas/PaginatedNews"
    */
   async listNews(req: Request, res: Response) {
-    const { page, pageSize, sourceIds, isMySourced, isLatest, isPopular } =
+    const { page, pageSize, isLatest, isPopular } =
       this.parseFilterQuery(req);
-
     const userId = this.extractUserId(req);
 
-    try {
-      const resolvedSourceIds = await this.resolveSourceIds(
-        userId,
-        sourceIds,
-        isMySourced
-      );
-
-      if (isMySourced && resolvedSourceIds.length === 0) {
-        return ResponseBuilder.ok(
-          res,
-          { items: [], total: 0, page, pageSize },
-          "News retrieved"
-        );
-      }
-
-      const result = await this.listNewsUseCase.execute({
-        page,
-        pageSize,
-        isLatest,
-        isPopular,
-        sourceIds: resolvedSourceIds.length
-          ? resolvedSourceIds
-          : undefined,
-      });
-      const categoryMetadata = await this.loadCategoryMetadata();
-      const augmented = await this.attachSavedStatus(
-        result,
-        userId,
-        categoryMetadata
-      );
-      return ResponseBuilder.ok(res, augmented, "News retrieved");
-    } catch (error) {
-      if (error instanceof Error && error.message === "User context required") {
-        return ResponseBuilder.unauthorized(res, error.message);
-      }
-
-      return ResponseBuilder.badRequest(
-        res,
-        error instanceof Error ? error.message : "Invalid request"
-      );
-    }
+    const result = await this.listNewsUseCase.execute({
+      page,
+      pageSize,
+      isLatest,
+      isPopular,
+    });
+    const categoryMetadata = await this.loadCategoryMetadata();
+    const augmented = await this.attachSavedStatus(
+      result,
+      userId,
+      categoryMetadata
+    );
+    return ResponseBuilder.ok(res, augmented, "News retrieved");
   }
 
   /**
@@ -298,16 +225,6 @@ export class NewsController {
    *         schema:
    *           type: boolean
    *         description: When true, return only news marked as popular
-   *       - in: query
-   *         name: isMySourced
-   *         schema:
-   *           type: boolean
-   *         description: When true, return news from followed sources
-   *       - in: query
-   *         name: sourceIds
-   *         schema:
-   *           type: string
-   *         description: Optional comma-separated list of source IDs (overrides followed sources)
    *     responses:
    *       200:
    *         description: Paginated filtered news without relationships
@@ -317,50 +234,22 @@ export class NewsController {
    *               $ref: "#/components/schemas/PaginatedNews"
    */
   async filterNews(req: Request, res: Response) {
-    const { page, pageSize, sourceIds, isMySourced, isLatest, isPopular } =
+    const { page, pageSize, isLatest, isPopular } =
       this.parseFilterQuery(req);
     const userId = this.extractUserId(req);
 
-    try {
-      const resolvedSourceIds = await this.resolveSourceIds(
-        userId,
-        sourceIds,
-        isMySourced
-      );
-
-      if (isMySourced && resolvedSourceIds.length === 0) {
-        return ResponseBuilder.ok(
-          res,
-          { items: [], total: 0, page, pageSize },
-          "Filtered news retrieved"
-        );
-      }
-
-      const result = await this.listNewsUseCase.execute({
-        page,
-        pageSize,
-        isLatest,
-        isPopular,
-        sourceIds: resolvedSourceIds.length
-          ? resolvedSourceIds
-          : undefined,
-      });
-      const categoryMetadata = await this.loadCategoryMetadata();
-      const augmented = await this.attachSavedStatus(
-        result,
-        userId,
-        categoryMetadata
-      );
-      return ResponseBuilder.ok(res, augmented, "Filtered news retrieved");
-    } catch (error) {
-      if (error instanceof Error && error.message === "User context required") {
-        return ResponseBuilder.unauthorized(res, error.message);
-      }
-
-      return ResponseBuilder.badRequest(
-        res,
-        error instanceof Error ? error.message : "Invalid request"
-      );
-    }
+    const result = await this.listNewsUseCase.execute({
+      page,
+      pageSize,
+      isLatest,
+      isPopular,
+    });
+    const categoryMetadata = await this.loadCategoryMetadata();
+    const augmented = await this.attachSavedStatus(
+      result,
+      userId,
+      categoryMetadata
+    );
+    return ResponseBuilder.ok(res, augmented, "Filtered news retrieved");
   }
 }

@@ -15,10 +15,7 @@ const wrapAsync =
 export function buildSavedNewsRouter(controller: SavedNewsController) {
   const router = Router();
   router.post("/", wrapAsync(controller.save.bind(controller)));
-  router.get(
-    "/user/:userId",
-    wrapAsync(controller.listByUser.bind(controller))
-  );
+  router.get("/", wrapAsync(controller.listByUser.bind(controller)));
   router.delete(
     "/:savedNewsId",
     wrapAsync(controller.remove.bind(controller))

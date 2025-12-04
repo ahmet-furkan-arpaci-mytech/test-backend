@@ -8,6 +8,8 @@ import { SaveNewsUseCase } from "../../application/use-cases/saved-news/save-new
 import { ResponseBuilder } from "../response/response-builder.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
 
+type AuthenticatedRequest = Request & { user?: Record<string, any> };
+
 @injectable()
 export class SavedNewsController {
   constructor(
@@ -19,13 +21,19 @@ export class SavedNewsController {
     private readonly removeSavedNewsUseCase: RemoveSavedNewsUseCase
   ) {}
 
+  private extractUserId(req: AuthenticatedRequest): string | undefined {
+    return req.user?.sub ?? req.user?.id ?? req.user?.userId;
+  }
+
   /**
    * @openapi
    * /api/v1/saved-news:
    *   post:
    *     tags:
    *       - Saved News
-   *     summary: Save a news item for a user
+   *     summary: Save a news item for the authenticated user
+   *     security:
+   *       - BearerAuth: []
    *     requestBody:
    *       required: true
    *       content:
@@ -39,31 +47,50 @@ export class SavedNewsController {
    *           application/json:
    *             schema:
    *               $ref: "#/components/schemas/SavedNewsResponse"
+   *       400:
+   *         description: Validation failed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
+   *       401:
+   *         description: User context required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
    *       404:
-   *         description: User or news not found
+   *         description: News not found
    *         content:
    *           application/json:
    *             schema:
    *               $ref: "#/components/schemas/ErrorResponse"
    */
-  async save(req: Request, res: Response) {
-    const savedNews = await this.saveNewsUseCase.execute(req.body);
+  async save(req: AuthenticatedRequest, res: Response) {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      return ResponseBuilder.unauthorized(res, "User context required");
+    }
+
+    const newsId =
+      typeof req.body.newsId === "string" ? req.body.newsId.trim() : "";
+    if (!newsId) {
+      return ResponseBuilder.badRequest(res, "newsId is required");
+    }
+
+    const savedNews = await this.saveNewsUseCase.execute({ userId, newsId });
     return ResponseBuilder.created(res, savedNews, "Saved news created");
   }
 
   /**
    * @openapi
-   * /api/v1/saved-news/user/{userId}:
+   * /api/v1/saved-news:
    *   get:
    *     tags:
    *       - Saved News
-   *     summary: List saved news for a user
-   *     parameters:
-   *       - in: path
-   *         name: userId
-   *         required: true
-   *         schema:
-   *           type: string
+   *     summary: List saved news for the authenticated user
+   *     security:
+   *       - BearerAuth: []
    *     responses:
    *       200:
    *         description: Saved news list
@@ -73,9 +100,20 @@ export class SavedNewsController {
    *               type: array
    *               items:
    *                 $ref: "#/components/schemas/SavedNewsResponse"
+   *       401:
+   *         description: User context required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
    */
-  async listByUser(req: Request, res: Response) {
-    const savedNews = await this.listSavedNewsUseCase.execute(req.params.userId);
+  async listByUser(req: AuthenticatedRequest, res: Response) {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      return ResponseBuilder.unauthorized(res, "User context required");
+    }
+
+    const savedNews = await this.listSavedNewsUseCase.execute(userId);
     return ResponseBuilder.ok(res, savedNews, "Saved news retrieved");
   }
 
@@ -86,33 +124,40 @@ export class SavedNewsController {
    *     tags:
    *       - Saved News
    *     summary: Remove a saved news entry
+   *     security:
+   *       - BearerAuth: []
    *     parameters:
    *       - in: path
    *         name: savedNewsId
    *         required: true
    *         schema:
    *           type: string
-   *       - in: query
-   *         name: userId
-   *         required: true
-   *         schema:
-   *           type: string
-   *         description: Ownership check
    *     responses:
    *       204:
    *         description: Saved news removed
+   *       401:
+   *         description: User context required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
    *       404:
    *         description: Saved news not found
    */
-  async remove(req: Request, res: Response) {
-    const userId = req.query.userId;
-    if (!userId || typeof userId !== "string") {
-      throw new AppError("userId query parameter is required", 400);
+  async remove(req: AuthenticatedRequest, res: Response) {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      return ResponseBuilder.unauthorized(res, "User context required");
+    }
+
+    const savedNewsId = req.params.savedNewsId;
+    if (!savedNewsId) {
+      throw new AppError("savedNewsId path parameter is required", 400);
     }
 
     await this.removeSavedNewsUseCase.execute({
       userId,
-      savedNewsId: req.params.savedNewsId,
+      savedNewsId,
     });
 
     return ResponseBuilder.noContent(res);

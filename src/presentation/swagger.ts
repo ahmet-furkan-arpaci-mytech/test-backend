@@ -192,10 +192,9 @@ const options = {
         SaveNewsRequest: {
           type: "object",
           properties: {
-            userId: { type: "string" },
             newsId: { type: "string" },
           },
-          required: ["userId", "newsId"],
+          required: ["newsId"],
         },
         SavedNewsResponse: {
           type: "object",
