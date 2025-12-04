@@ -2,6 +2,7 @@ import "dotenv/config";
 import "reflect-metadata";
 
 import express, { type Express } from "express";
+import cors from "cors";
 import mongoose from "mongoose";
 
 import { buildCategoryRouter } from "../presentation/routes/category.routes.js";
@@ -15,6 +16,7 @@ import { authMiddleware } from "../presentation/middlewares/auth.middleware.js";
 import { globalErrorHandler } from "../presentation/middlewares/global-error-handler.js";
 import { httpLogger } from "../presentation/middlewares/http-logger.js";
 import { apiKeyMiddleware } from "../presentation/middlewares/api-key.middleware.js";
+import { buildCorsOptions } from "../config/cors.config.js";
 import { TkMessage } from "../infrastructure/utils/tk-message.js";
 import { CategoryController } from "../presentation/controllers/category.controller.js";
 import { NewsController } from "../presentation/controllers/news.controller.js";
@@ -68,6 +70,7 @@ function registerRoutes(app: Express, routers: AppRouterMap): void {
 
 function configureApp(container: AppContainer): Express {
   const { app, routers } = container;
+  app.use(cors(buildCorsOptions()));
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(httpLogger);

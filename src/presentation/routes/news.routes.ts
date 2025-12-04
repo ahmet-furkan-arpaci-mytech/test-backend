@@ -23,7 +23,6 @@ export function buildNewsRouter(
     wrapAsync(newsController.filterNews.bind(newsController))
   );
   router.get("/", wrapAsync(newsController.listNews.bind(newsController)));
-  router.post("/", wrapAsync(newsController.createNews.bind(newsController)));
   router.get(
     "/categories",
     wrapAsync(categoryController.listCategories.bind(categoryController))

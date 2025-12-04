@@ -14,7 +14,6 @@ export const DI_TYPES = {
   CreateUserUseCase: Symbol.for("CreateUserUseCase"),
   AuthenticateUserUseCase: Symbol.for("AuthenticateUserUseCase"),
   GetUserProfileUseCase: Symbol.for("GetUserProfileUseCase"),
-  CreateNewsUseCase: Symbol.for("CreateNewsUseCase"),
   ListNewsUseCase: Symbol.for("ListNewsUseCase"),
   GetNewsByCategoryUseCase: Symbol.for("GetNewsByCategoryUseCase"),
   SaveNewsUseCase: Symbol.for("SaveNewsUseCase"),
@@ -25,13 +24,8 @@ export const DI_TYPES = {
   FollowSourceUseCase: Symbol.for("FollowSourceUseCase"),
   UnfollowSourceUseCase: Symbol.for("UnfollowSourceUseCase"),
   SyncFollowedSourcesUseCase: Symbol.for("SyncFollowedSourcesUseCase"),
-  CreateCategoryUseCase: Symbol.for("CreateCategoryUseCase"),
   ListCategoriesUseCase: Symbol.for("ListCategoriesUseCase"),
   ListCategoriesWithNewsUseCase: Symbol.for("ListCategoriesWithNewsUseCase"),
-  CreateTwitterAccountUseCase: Symbol.for("CreateTwitterAccountUseCase"),
-  ListTwitterAccountsUseCase: Symbol.for("ListTwitterAccountsUseCase"),
-  FollowTwitterAccountUseCase: Symbol.for("FollowTwitterAccountUseCase"),
-  UnfollowTwitterAccountUseCase: Symbol.for("UnfollowTwitterAccountUseCase"),
   ListFollowedTwitterAccountsUseCase: Symbol.for(
     "ListFollowedTwitterAccountsUseCase"
   ),

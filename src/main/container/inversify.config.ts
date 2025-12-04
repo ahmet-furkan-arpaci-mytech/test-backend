@@ -12,13 +12,9 @@ import {
 import { AuthenticateUserUseCase } from "../../application/use-cases/user/authenticate-user.use-case.js";
 import { CategoryController } from "../../presentation/controllers/category.controller.js";
 import { Container } from "inversify";
-import { CreateCategoryUseCase } from "../../application/use-cases/category/create-category.use-case.js";
-import { CreateNewsUseCase } from "../../application/use-cases/news/create-news.use-case.js";
-import { CreateTwitterAccountUseCase } from "../../application/use-cases/twitter-account/create-twitter-account.use-case.js";
 import { CreateUserUseCase } from "../../application/use-cases/user/create-user.use-case.js";
 import { GetUserProfileUseCase } from "../../application/use-cases/user/get-user-profile.use-case.js";
 import { DI_TYPES } from "./ioc.types.js";
-import { FollowTwitterAccountUseCase } from "../../application/use-cases/twitter-account/follow-twitter-account.use-case.js";
 import { GetNewsByCategoryUseCase } from "../../application/use-cases/news/get-news-by-category.use-case.js";
 import { ICategoryRepository } from "../../domain/repositories/category.repository.interface.js";
 import { INewsRepository } from "../../domain/repositories/news.repository.interface.js";
@@ -42,7 +38,6 @@ import { ListFollowedTwitterAccountsUseCase } from "../../application/use-cases/
 import { ListNewsUseCase } from "../../application/use-cases/news/list-news.use-case.js";
 import { ListSavedNewsUseCase } from "../../application/use-cases/saved-news/list-saved-news.use-case.js";
 import { ListTweetsUseCase } from "../../application/use-cases/twitter/list-tweets.use-case.js";
-import { ListTwitterAccountsUseCase } from "../../application/use-cases/twitter-account/list-twitter-accounts.use-case.js";
 import { MongoCategoryRepository } from "../../infrastructure/repositories/category/category.mongoose.js";
 import { MongoNewsRepository } from "../../infrastructure/repositories/news/news.mongoose.js";
 import { MongoSavedNewsRepository } from "../../infrastructure/repositories/saved-news/saved-news.mongoose.js";
@@ -58,7 +53,6 @@ import { SaveNewsUseCase } from "../../application/use-cases/saved-news/save-new
 import { SavedNewsController } from "../../presentation/controllers/saved-news.controller.js";
 import { TwitterController } from "../../presentation/controllers/twitter.controller.js";
 import { UserSourceFollowController } from "../../presentation/controllers/user-source-follow.controller.js";
-import { UnfollowTwitterAccountUseCase } from "../../application/use-cases/twitter-account/unfollow-twitter-account.use-case.js";
 import { UserController } from "../../presentation/controllers/user.controller.js";
 
 export const container = new Container();
@@ -128,16 +122,10 @@ container
 container
   .bind<AuthenticateUserUseCase>(DI_TYPES.AuthenticateUserUseCase)
   .to(AuthenticateUserUseCase);
-container
-  .bind<CreateNewsUseCase>(DI_TYPES.CreateNewsUseCase)
-  .to(CreateNewsUseCase);
 container.bind<ListNewsUseCase>(DI_TYPES.ListNewsUseCase).to(ListNewsUseCase);
 container
   .bind<GetNewsByCategoryUseCase>(DI_TYPES.GetNewsByCategoryUseCase)
   .to(GetNewsByCategoryUseCase);
-container
-  .bind<CreateCategoryUseCase>(DI_TYPES.CreateCategoryUseCase)
-  .to(CreateCategoryUseCase);
 container
   .bind<ListCategoriesUseCase>(DI_TYPES.ListCategoriesUseCase)
   .to(ListCategoriesUseCase);
@@ -145,18 +133,6 @@ container
   .bind<ListCategoriesWithNewsUseCase>(DI_TYPES.ListCategoriesWithNewsUseCase)
   .to(ListCategoriesWithNewsUseCase);
 
-container
-  .bind<CreateTwitterAccountUseCase>(DI_TYPES.CreateTwitterAccountUseCase)
-  .to(CreateTwitterAccountUseCase);
-container
-  .bind<ListTwitterAccountsUseCase>(DI_TYPES.ListTwitterAccountsUseCase)
-  .to(ListTwitterAccountsUseCase);
-container
-  .bind<FollowTwitterAccountUseCase>(DI_TYPES.FollowTwitterAccountUseCase)
-  .to(FollowTwitterAccountUseCase);
-container
-  .bind<UnfollowTwitterAccountUseCase>(DI_TYPES.UnfollowTwitterAccountUseCase)
-  .to(UnfollowTwitterAccountUseCase);
 container
   .bind<ListFollowedTwitterAccountsUseCase>(
     DI_TYPES.ListFollowedTwitterAccountsUseCase

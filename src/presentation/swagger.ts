@@ -1,6 +1,8 @@
 import path from "node:path";
 import swaggerJsdoc from "swagger-jsdoc";
 
+import { getSwaggerBaseUrl } from "../config/swagger.config.js";
+
 const controllerGlobs = [
   path.join(__dirname, "controllers", "*.js"),
   path.join(process.cwd(), "src", "presentation", "controllers", "*.ts"),
@@ -16,7 +18,7 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:4000",
+        url: getSwaggerBaseUrl(),
         description: "Local development server",
       },
     ],

@@ -9,7 +9,6 @@ const wrapAsync =
 
 export function buildCategoryRouter(controller: CategoryController) {
   const router = Router();
-  router.post("/", wrapAsync(controller.createCategory.bind(controller)));
   router.get("/", wrapAsync(controller.listCategories.bind(controller)));
   router.get(
     "/with-news",

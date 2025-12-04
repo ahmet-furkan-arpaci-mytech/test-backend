@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import { inject, injectable } from "inversify";
 
 import { ResponseBuilder } from "../response/response-builder.js";
-import { CreateNewsUseCase } from "../../application/use-cases/news/create-news.use-case.js";
 import { ListNewsUseCase } from "../../application/use-cases/news/list-news.use-case.js";
 import { GetNewsByCategoryUseCase } from "../../application/use-cases/news/get-news-by-category.use-case.js";
 import { ListSavedNewsUseCase } from "../../application/use-cases/saved-news/list-saved-news.use-case.js";
@@ -41,8 +40,6 @@ type PaginatedNewsResponse = PaginatedResult<NewsResponseItem>;
 @injectable()
 export class NewsController {
   constructor(
-    @inject(DI_TYPES.CreateNewsUseCase)
-    private readonly createNewsUseCase: CreateNewsUseCase,
     @inject(DI_TYPES.ListNewsUseCase)
     private readonly listNewsUseCase: ListNewsUseCase,
     @inject(DI_TYPES.GetNewsByCategoryUseCase)
@@ -136,38 +133,6 @@ export class NewsController {
     colorCode: categoryMetadata[news.categoryId]?.colorCode,
       })),
     };
-  }
-
-  /**
-   * @openapi
-   * /api/v1/news:
-   *   post:
-   *     tags:
-   *       - News
-   *     summary: Publish a news item
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: "#/components/schemas/CreateNews"
-   *     responses:
-   *       201:
-   *         description: News created
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: "#/components/schemas/News"
-   *       400:
-   *         description: Validation error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: "#/components/schemas/ErrorResponse"
-   */
-  async createNews(req: Request, res: Response) {
-    const news = await this.createNewsUseCase.execute(req.body);
-    return ResponseBuilder.created(res, news, "News created");
   }
 
   /**
