@@ -37,7 +37,8 @@ export class UserController {
   *         application/json:
   *           schema:
   *             $ref: "#/components/schemas/UserRegistration"
-  *     security: []
+   *     security:
+   *       - ApiKeyAuth: []
   *     responses:
    *       201:
    *         description: The user was created successfully
@@ -70,7 +71,8 @@ export class UserController {
   *         application/json:
   *           schema:
   *             $ref: "#/components/schemas/UserAuthentication"
-  *     security: []
+   *     security:
+   *       - ApiKeyAuth: []
   *     responses:
    *       200:
    *         description: Authenticated user

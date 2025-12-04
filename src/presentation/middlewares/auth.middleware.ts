@@ -4,6 +4,7 @@ import { ResponseBuilder } from "../response/response-builder.js";
 import { container } from "../../main/container/inversify.config.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
 import { ITokenService } from "../../application/services/token.service.js";
+import { getExpectedApiKey } from "../../config/api-key.config.js";
 
 const API_PREFIX = (process.env.API_PREFIX ?? "/api/v1").toLowerCase();
 const PUBLIC_ENDPOINTS = [
@@ -16,6 +17,16 @@ interface AuthenticatedRequest extends Request {
 }
 
 const tokenService = container.get<ITokenService>(DI_TYPES.TokenService);
+
+function hasValidApiKey(req: Request): boolean {
+  const expected = getExpectedApiKey();
+  if (!expected) {
+    return false;
+  }
+
+  const headerValue = req.header("x-api-key") ?? req.header("X-API-Key");
+  return headerValue === expected;
+}
 
 function isPublicRoute(req: Request): boolean {
   if (req.method === "OPTIONS") {
@@ -32,6 +43,10 @@ function isPublicRoute(req: Request): boolean {
 
 export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (isPublicRoute(req)) {
+    return next();
+  }
+
+  if (hasValidApiKey(req)) {
     return next();
   }
 
