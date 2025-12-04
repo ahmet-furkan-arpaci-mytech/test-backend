@@ -15,14 +15,19 @@ const wrapAsync =
 export function buildSourceFollowRouter(controller: UserSourceFollowController) {
   const router = Router();
   router.get("/", wrapAsync(controller.getAllSources.bind(controller)));
+  router.get("/search", wrapAsync(controller.searchSources.bind(controller)));
   router.get("/followed", wrapAsync(controller.getFollowedSources.bind(controller)));
-  router.put(
-    "/followed",
-    wrapAsync(controller.updateMyFollowedSources.bind(controller))
+  router.post(
+    "/:sourceId/follow",
+    wrapAsync(controller.followSource.bind(controller))
   );
   router.delete(
-    "/followed",
-    wrapAsync(controller.clearFollowedSources.bind(controller))
+    "/:sourceId/follow",
+    wrapAsync(controller.unfollowSource.bind(controller))
+  );
+  router.post(
+    "/follow/bulk",
+    wrapAsync(controller.syncFollowedSources.bind(controller))
   );
   return router;
 }

@@ -16,6 +16,7 @@ import { CreateCategoryUseCase } from "../../application/use-cases/category/crea
 import { CreateNewsUseCase } from "../../application/use-cases/news/create-news.use-case.js";
 import { CreateTwitterAccountUseCase } from "../../application/use-cases/twitter-account/create-twitter-account.use-case.js";
 import { CreateUserUseCase } from "../../application/use-cases/user/create-user.use-case.js";
+import { GetUserProfileUseCase } from "../../application/use-cases/user/get-user-profile.use-case.js";
 import { DI_TYPES } from "./ioc.types.js";
 import { FollowTwitterAccountUseCase } from "../../application/use-cases/twitter-account/follow-twitter-account.use-case.js";
 import { GetNewsByCategoryUseCase } from "../../application/use-cases/news/get-news-by-category.use-case.js";
@@ -34,8 +35,9 @@ import { ListCategoriesUseCase } from "../../application/use-cases/category/list
 import { ListCategoriesWithNewsUseCase } from "../../application/use-cases/category/list-categories-with-news.use-case.js";
 import { ListSourcesUseCase } from "../../application/use-cases/source/list-sources.use-case.js";
 import { ListFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/list-followed-sources.use-case.js";
-import { RemoveAllFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/remove-all-followed-sources.use-case.js";
-import { UpdateFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/update-followed-sources.use-case.js";
+import { FollowSourceUseCase } from "../../application/use-cases/user-source-follow/follow-source.use-case.js";
+import { UnfollowSourceUseCase } from "../../application/use-cases/user-source-follow/unfollow-source.use-case.js";
+import { SyncFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/sync-followed-sources.use-case.js";
 import { ListFollowedTwitterAccountsUseCase } from "../../application/use-cases/twitter-account/list-followed-twitter-accounts.use-case.js";
 import { ListNewsUseCase } from "../../application/use-cases/news/list-news.use-case.js";
 import { ListSavedNewsUseCase } from "../../application/use-cases/saved-news/list-saved-news.use-case.js";
@@ -121,6 +123,9 @@ container
   .bind<CreateUserUseCase>(DI_TYPES.CreateUserUseCase)
   .to(CreateUserUseCase);
 container
+  .bind<GetUserProfileUseCase>(DI_TYPES.GetUserProfileUseCase)
+  .to(GetUserProfileUseCase);
+container
   .bind<AuthenticateUserUseCase>(DI_TYPES.AuthenticateUserUseCase)
   .to(AuthenticateUserUseCase);
 container
@@ -175,14 +180,14 @@ container
   .bind<ListFollowedSourcesUseCase>(DI_TYPES.ListFollowedSourcesUseCase)
   .to(ListFollowedSourcesUseCase);
 container
-  .bind<UpdateFollowedSourcesUseCase>(DI_TYPES.UpdateFollowedSourcesUseCase)
-  .to(UpdateFollowedSourcesUseCase);
+  .bind<FollowSourceUseCase>(DI_TYPES.FollowSourceUseCase)
+  .to(FollowSourceUseCase);
 container
-  .bind<RemoveAllFollowedSourcesUseCase>(
-    DI_TYPES.RemoveAllFollowedSourcesUseCase
-  )
-  .to(RemoveAllFollowedSourcesUseCase);
-
+  .bind<UnfollowSourceUseCase>(DI_TYPES.UnfollowSourceUseCase)
+  .to(UnfollowSourceUseCase);
+container
+  .bind<SyncFollowedSourcesUseCase>(DI_TYPES.SyncFollowedSourcesUseCase)
+  .to(SyncFollowedSourcesUseCase);
 container.bind(UserController).toSelf();
 container.bind(NewsController).toSelf();
 container.bind(SavedNewsController).toSelf();

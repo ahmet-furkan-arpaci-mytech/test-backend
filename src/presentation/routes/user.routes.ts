@@ -16,5 +16,6 @@ export function buildUserRouter(controller: UserController) {
   const router = Router();
   router.post("/", wrapAsync(controller.createUser.bind(controller)));
   router.post("/login", wrapAsync(controller.authenticateUser.bind(controller)));
+  router.get("/profile", wrapAsync(controller.getProfile.bind(controller)));
   return router;
 }

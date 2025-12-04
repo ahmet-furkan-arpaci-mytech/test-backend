@@ -9,8 +9,14 @@ export class MongoSourceRepository implements ISourceRepository {
     return doc ? SourceMapper.toDomain(doc) : null;
   }
 
-  async findAll(): Promise<Source[]> {
-    const docs = await SourceModel.find().lean();
+  async findAll(searchQuery?: string): Promise<Source[]> {
+    const query: Record<string, unknown> = {};
+    if (searchQuery?.trim()) {
+      const regex = new RegExp(searchQuery.trim(), "i");
+      query.name = regex;
+    }
+
+    const docs = await SourceModel.find(query).lean();
     return docs.map(SourceMapper.toDomain);
   }
 

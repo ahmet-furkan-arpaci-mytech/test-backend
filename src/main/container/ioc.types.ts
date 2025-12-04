@@ -13,6 +13,7 @@ export const DI_TYPES = {
   IdGenerator: Symbol.for("IdGenerator"),
   CreateUserUseCase: Symbol.for("CreateUserUseCase"),
   AuthenticateUserUseCase: Symbol.for("AuthenticateUserUseCase"),
+  GetUserProfileUseCase: Symbol.for("GetUserProfileUseCase"),
   CreateNewsUseCase: Symbol.for("CreateNewsUseCase"),
   ListNewsUseCase: Symbol.for("ListNewsUseCase"),
   GetNewsByCategoryUseCase: Symbol.for("GetNewsByCategoryUseCase"),
@@ -21,10 +22,9 @@ export const DI_TYPES = {
   RemoveSavedNewsUseCase: Symbol.for("RemoveSavedNewsUseCase"),
   ListSourcesUseCase: Symbol.for("ListSourcesUseCase"),
   ListFollowedSourcesUseCase: Symbol.for("ListFollowedSourcesUseCase"),
-  UpdateFollowedSourcesUseCase: Symbol.for("UpdateFollowedSourcesUseCase"),
-  RemoveAllFollowedSourcesUseCase: Symbol.for(
-    "RemoveAllFollowedSourcesUseCase"
-  ),
+  FollowSourceUseCase: Symbol.for("FollowSourceUseCase"),
+  UnfollowSourceUseCase: Symbol.for("UnfollowSourceUseCase"),
+  SyncFollowedSourcesUseCase: Symbol.for("SyncFollowedSourcesUseCase"),
   CreateCategoryUseCase: Symbol.for("CreateCategoryUseCase"),
   ListCategoriesUseCase: Symbol.for("ListCategoriesUseCase"),
   ListCategoriesWithNewsUseCase: Symbol.for("ListCategoriesWithNewsUseCase"),

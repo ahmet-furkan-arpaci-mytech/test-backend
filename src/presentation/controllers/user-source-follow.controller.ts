@@ -4,8 +4,12 @@ import { inject, injectable } from "inversify";
 import { ResponseBuilder } from "../response/response-builder.js";
 import { ListSourcesUseCase } from "../../application/use-cases/source/list-sources.use-case.js";
 import { ListFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/list-followed-sources.use-case.js";
-import { RemoveAllFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/remove-all-followed-sources.use-case.js";
-import { UpdateFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/update-followed-sources.use-case.js";
+import { FollowSourceUseCase } from "../../application/use-cases/user-source-follow/follow-source.use-case.js";
+import {
+  FollowStateUpdate,
+  SyncFollowedSourcesUseCase,
+} from "../../application/use-cases/user-source-follow/sync-followed-sources.use-case.js";
+import { UnfollowSourceUseCase } from "../../application/use-cases/user-source-follow/unfollow-source.use-case.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
 
 type AuthenticatedRequest = Request & { user?: Record<string, any> };
@@ -17,10 +21,12 @@ export class UserSourceFollowController {
     private readonly listSourcesUseCase: ListSourcesUseCase,
     @inject(DI_TYPES.ListFollowedSourcesUseCase)
     private readonly listFollowedSourcesUseCase: ListFollowedSourcesUseCase,
-    @inject(DI_TYPES.UpdateFollowedSourcesUseCase)
-    private readonly updateFollowedSourcesUseCase: UpdateFollowedSourcesUseCase,
-    @inject(DI_TYPES.RemoveAllFollowedSourcesUseCase)
-    private readonly removeAllFollowedSourcesUseCase: RemoveAllFollowedSourcesUseCase
+    @inject(DI_TYPES.FollowSourceUseCase)
+    private readonly followSourceUseCase: FollowSourceUseCase,
+    @inject(DI_TYPES.UnfollowSourceUseCase)
+    private readonly unfollowSourceUseCase: UnfollowSourceUseCase,
+    @inject(DI_TYPES.SyncFollowedSourcesUseCase)
+    private readonly syncFollowedSourcesUseCase: SyncFollowedSourcesUseCase
   ) {}
 
   private extractUserId(req: AuthenticatedRequest) {
@@ -45,6 +51,55 @@ export class UserSourceFollowController {
   async getAllSources(req: Request, res: Response) {
     const sources = await this.listSourcesUseCase.execute();
     return ResponseBuilder.ok(res, { sources }, "Sources retrieved");
+  }
+
+  /**
+   * @openapi
+   * /api/v1/sources/search:
+   *   get:
+   *     tags:
+   *       - Sources
+   *     summary: Search sources by name
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: search
+   *         schema:
+   *           type: string
+   *         description: Optional term to filter sources by name
+   *     responses:
+   *       200:
+   *         description: Sources retrieved
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/SourcesResponse"
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
+   */
+  async searchSources(req: AuthenticatedRequest, res: Response) {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      return ResponseBuilder.unauthorized(res, "User context required");
+    }
+
+    const search =
+      typeof req.query.search === "string" ? req.query.search : undefined;
+    const [sources, followedSources] = await Promise.all([
+      this.listSourcesUseCase.execute(search),
+      this.listFollowedSourcesUseCase.execute(userId),
+    ]);
+    const followedIds = new Set(followedSources.map((source) => source.id));
+    const enriched = sources.map((source) => ({
+      ...source,
+      isFollowed: followedIds.has(source.id),
+    }));
+    return ResponseBuilder.ok(res, { sources: enriched }, "Sources retrieved");
   }
 
   /**
@@ -82,24 +137,33 @@ export class UserSourceFollowController {
 
   /**
    * @openapi
-   * /api/v1/sources/followed:
-   *   put:
+   * /api/v1/sources/follow/bulk:
+   *   post:
    *     tags:
    *       - Sources
-   *     summary: Replace the followed sources list for the authenticated user
+   *     summary: Sync multiple follow changes at once
+   *     security:
+   *       - BearerAuth: []
    *     requestBody:
    *       required: true
    *       content:
    *         application/json:
    *           schema:
-   *             $ref: "#/components/schemas/MyFollowedSourcesUpdate"
+   *             $ref: "#/components/schemas/FollowStateUpdateList"
    *     responses:
    *       200:
-   *         description: Followed sources updated
+   *         description: Follow states synchronized
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: "#/components/schemas/SuccessResponse"
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *                 result:
+   *                   $ref: "#/components/schemas/FollowSyncResult"
    *       400:
    *         description: Validation error
    *         content:
@@ -113,32 +177,69 @@ export class UserSourceFollowController {
    *             schema:
    *               $ref: "#/components/schemas/ErrorResponse"
    */
-  async updateMyFollowedSources(req: Request, res: Response) {
+  async syncFollowedSources(req: AuthenticatedRequest, res: Response) {
     const userId = this.extractUserId(req);
     if (!userId) {
       return ResponseBuilder.unauthorized(res, "User context required");
     }
 
-    const { sourceIds } = req.body as { sourceIds?: unknown };
-    if (!Array.isArray(sourceIds)) {
-      return ResponseBuilder.badRequest(res, "sourceIds must be an array");
+    if (!Array.isArray(req.body)) {
+      return ResponseBuilder.badRequest(
+        res,
+        "Request body must be an array of follow updates"
+      );
     }
 
-    const normalized = sourceIds.filter((id) => typeof id === "string");
-    await this.updateFollowedSourcesUseCase.execute(userId, normalized);
-    return ResponseBuilder.ok(res, null, "Followed sources updated");
+    const updates = req.body
+      .filter((item) => item && typeof item === "object")
+      .map((item) => {
+        const candidate = item as FollowStateUpdate;
+        if (
+          typeof candidate.sourceId !== "string" ||
+          typeof candidate.isFollowed !== "boolean"
+        ) {
+          return null;
+        }
+        return {
+          sourceId: candidate.sourceId,
+          isFollowed: candidate.isFollowed,
+        };
+      })
+      .filter((update): update is FollowStateUpdate => update !== null);
+
+    if (!updates.length) {
+      return ResponseBuilder.badRequest(
+        res,
+        "At least one valid follow update is required"
+      );
+    }
+
+    const result = await this.syncFollowedSourcesUseCase.execute(userId, updates);
+    return ResponseBuilder.ok(res, result, "Followed sources synchronized");
   }
 
   /**
    * @openapi
-   * /api/v1/sources/followed:
-   *   delete:
+   * /api/v1/sources/{sourceId}/follow:
+   *   post:
    *     tags:
    *       - Sources
-   *     summary: Remove all followed sources for the authenticated user
+   *     summary: Follow a source for the authenticated user
+   *     parameters:
+   *       - in: path
+   *         name: sourceId
+   *         required: true
+   *         schema:
+   *           type: string
    *     responses:
-   *       204:
-   *         description: Followed sources cleared
+   *       202:
+   *         description: Following source
+   *       400:
+   *         description: Validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
    *       401:
    *         description: Authentication required
    *         content:
@@ -146,13 +247,76 @@ export class UserSourceFollowController {
    *             schema:
    *               $ref: "#/components/schemas/ErrorResponse"
    */
-  async clearFollowedSources(req: Request, res: Response) {
+  async followSource(req: AuthenticatedRequest, res: Response) {
     const userId = this.extractUserId(req);
     if (!userId) {
       return ResponseBuilder.unauthorized(res, "User context required");
     }
 
-    await this.removeAllFollowedSourcesUseCase.execute(userId);
-    return ResponseBuilder.noContent(res);
+    const { sourceId } = req.params;
+    if (!sourceId) {
+      return ResponseBuilder.badRequest(res, "sourceId is required");
+    }
+
+    try {
+      await this.followSourceUseCase.execute(userId, sourceId);
+      return ResponseBuilder.accepted(res, null, "Following source");
+    } catch (error) {
+      return ResponseBuilder.badRequest(
+        res,
+        error instanceof Error ? error.message : "Invalid request"
+      );
+    }
+  }
+
+  /**
+   * @openapi
+   * /api/v1/sources/{sourceId}/follow:
+   *   delete:
+   *     tags:
+   *       - Sources
+   *     summary: Unfollow a source for the authenticated user
+   *     parameters:
+   *       - in: path
+   *         name: sourceId
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       204:
+   *         description: Source unfollowed
+   *       400:
+   *         description: Validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
+   */
+  async unfollowSource(req: AuthenticatedRequest, res: Response) {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      return ResponseBuilder.unauthorized(res, "User context required");
+    }
+
+    const { sourceId } = req.params;
+    if (!sourceId) {
+      return ResponseBuilder.badRequest(res, "sourceId is required");
+    }
+
+    try {
+      await this.unfollowSourceUseCase.execute(userId, sourceId);
+      return ResponseBuilder.noContent(res);
+    } catch (error) {
+      return ResponseBuilder.badRequest(
+        res,
+        error instanceof Error ? error.message : "Invalid request"
+      );
+    }
   }
 }

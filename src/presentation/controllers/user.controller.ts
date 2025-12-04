@@ -4,7 +4,10 @@ import { inject, injectable } from "inversify";
 import { ResponseBuilder } from "../response/response-builder.js";
 import { CreateUserUseCase } from "../../application/use-cases/user/create-user.use-case.js";
 import { AuthenticateUserUseCase } from "../../application/use-cases/user/authenticate-user.use-case.js";
+import { GetUserProfileUseCase } from "../../application/use-cases/user/get-user-profile.use-case.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
+
+type AuthenticatedRequest = Request & { user?: Record<string, any> };
 
 @injectable()
 export class UserController {
@@ -12,8 +15,14 @@ export class UserController {
     @inject(DI_TYPES.CreateUserUseCase)
     private readonly createUserUseCase: CreateUserUseCase,
     @inject(DI_TYPES.AuthenticateUserUseCase)
-    private readonly authenticateUserUseCase: AuthenticateUserUseCase
+    private readonly authenticateUserUseCase: AuthenticateUserUseCase,
+    @inject(DI_TYPES.GetUserProfileUseCase)
+    private readonly getUserProfileUseCase: GetUserProfileUseCase
   ) {}
+
+  private extractUserId(req: AuthenticatedRequest) {
+    return req.user?.sub ?? req.user?.id ?? req.user?.userId;
+  }
 
   /**
    * @openapi
@@ -79,5 +88,44 @@ export class UserController {
   async authenticateUser(req: Request, res: Response) {
     const result = await this.authenticateUserUseCase.execute(req.body);
     return ResponseBuilder.ok(res, result, "Authenticated");
+  }
+
+  /**
+   * @openapi
+   * /api/v1/users/profile:
+   *   get:
+   *     tags:
+   *       - Users
+   *     summary: Get the authenticated user's profile
+   *     security:
+   *       - BearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Profile returned
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/UserResponse"
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
+   */
+  async getProfile(req: AuthenticatedRequest, res: Response) {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      return ResponseBuilder.unauthorized(res, "User context required");
+    }
+
+    const user = await this.getUserProfileUseCase.execute(userId);
+    const result = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      imageUrl: user.imageUrl,
+    };
+    return ResponseBuilder.ok(res, result, "Profile retrieved");
   }
 }

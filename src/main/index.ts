@@ -14,6 +14,7 @@ import { buildSourceFollowRouter } from "../presentation/routes/source-follow.ro
 import { authMiddleware } from "../presentation/middlewares/auth.middleware.js";
 import { globalErrorHandler } from "../presentation/middlewares/global-error-handler.js";
 import { httpLogger } from "../presentation/middlewares/http-logger.js";
+import { apiKeyMiddleware } from "../presentation/middlewares/api-key.middleware.js";
 import { TkMessage } from "../infrastructure/utils/tk-message.js";
 import { CategoryController } from "../presentation/controllers/category.controller.js";
 import { NewsController } from "../presentation/controllers/news.controller.js";
@@ -70,6 +71,7 @@ function configureApp(container: AppContainer): Express {
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(httpLogger);
+  app.use(apiKeyMiddleware);
   app.use(authMiddleware);
 
   registerRoutes(app, routers);

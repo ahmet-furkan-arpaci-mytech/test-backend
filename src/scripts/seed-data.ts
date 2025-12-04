@@ -3,19 +3,21 @@ import "dotenv/config";
 import { BcryptPasswordService } from "../application/services/password.service.js";
 import { CategoryModel } from "../infrastructure/persistence/mongoose/models/category.model.js";
 import { NewsModel } from "../infrastructure/persistence/mongoose/models/news.model.js";
+import { SavedNewsModel } from "../infrastructure/persistence/mongoose/models/saved-news.model.js";
 import { SourceCategoryModel } from "../infrastructure/persistence/mongoose/models/source-category.model.js";
 import { SourceModel } from "../infrastructure/persistence/mongoose/models/source.model.js";
 import { TweetModel } from "../infrastructure/persistence/mongoose/models/tweet.model.js";
-import { UserModel } from "../infrastructure/persistence/mongoose/models/user.model.js";
-import { UserSourceFollowModel } from "../infrastructure/persistence/mongoose/models/user-source-follow.model.js";
 import { TwitterAccountFollowModel } from "../infrastructure/persistence/mongoose/models/twitter-account-follow.model.js";
 import { TwitterAccountModel } from "../infrastructure/persistence/mongoose/models/twitter-account.model.js";
+import { UserModel } from "../infrastructure/persistence/mongoose/models/user.model.js";
+import { UserSourceFollowModel } from "../infrastructure/persistence/mongoose/models/user-source-follow.model.js";
 import { UuidGenerator } from "../application/services/id.service.js";
 import { faker } from "@faker-js/faker";
 import mongoose from "mongoose";
 
 const CATEGORY_COUNT = 10;
 const NEWS_COUNT = 2000;
+const SAVED_NEWS_PER_USER = 100;
 const TWEET_COUNT = 120;
 const TWITTER_ACCOUNT_COUNT = 40;
 const USER_COUNT = 10;
@@ -29,6 +31,7 @@ async function clearCollections() {
   await Promise.all([
     CategoryModel.deleteMany({}),
     NewsModel.deleteMany({}),
+    SavedNewsModel.deleteMany({}),
     SourceCategoryModel.deleteMany({}),
     SourceModel.deleteMany({}),
     TweetModel.deleteMany({}),
@@ -67,7 +70,9 @@ function buildNews(categories: { _id: string }[], sources: { _id: string }[]) {
   });
 }
 
-function buildTweets(accounts: { _id: string; displayName: string; imageUrl: string }[]) {
+function buildTweets(
+  accounts: { _id: string; displayName: string; imageUrl: string }[]
+) {
   if (accounts.length === 0) {
     throw new Error("At least one Twitter account is required to seed tweets.");
   }
@@ -175,6 +180,41 @@ function buildUserFollows(
   return follows;
 }
 
+type SavedNewsSeed = {
+  _id: string;
+  userId: string;
+  newsId: string;
+  savedAt: Date;
+};
+
+function buildSavedNews(
+  users: { _id: string }[],
+  newsItems: { _id: string }[]
+) {
+  const saved: SavedNewsSeed[] = [];
+  users.forEach((user) => {
+    const maxForUser = Math.min(SAVED_NEWS_PER_USER, newsItems.length);
+    if (maxForUser === 0) {
+      return;
+    }
+
+    const selected = faker.helpers.arrayElements(newsItems, {
+      min: 1,
+      max: faker.number.int({ min: 1, max: maxForUser }),
+    });
+    selected.forEach((news) => {
+      saved.push({
+        _id: idGenerator.generate(),
+        userId: user._id,
+        newsId: news._id,
+        savedAt: faker.date.recent({ days: 30 }),
+      });
+    });
+  });
+
+  return saved;
+}
+
 async function main() {
   const uri =
     process.env.MONGO_URI ?? "mongodb://localhost:27017/news-backend-test";
@@ -210,6 +250,10 @@ async function main() {
   const users = await buildUsers();
   await UserModel.insertMany(users);
   console.log(`Inserted ${users.length} users.`);
+
+  const savedNews = buildSavedNews(users, news);
+  await SavedNewsModel.insertMany(savedNews);
+  console.log(`Inserted ${savedNews.length} saved news entries.`);
 
   const follows = buildUserFollows(users, sources);
   await UserSourceFollowModel.insertMany(follows);

@@ -25,12 +25,10 @@ const options = {
         UserRegistration: {
           type: "object",
           properties: {
-            name: { type: "string" },
             email: { type: "string", format: "email" },
             password: { type: "string" },
-            imageUrl: { type: "string", format: "uri" },
           },
-          required: ["name", "email", "password"],
+          required: ["email", "password"],
         },
         UserAuthentication: {
           type: "object",
@@ -124,6 +122,8 @@ const options = {
             publishedAt: { type: "string", format: "date-time" },
             isLatest: { type: "boolean" },
             isPopular: { type: "boolean" },
+            colorCode: { type: "string" },
+            isSaved: { type: "boolean" },
             sourceName: { type: "string" },
             categoryName: { type: "string" },
           },
@@ -212,15 +212,30 @@ const options = {
             result: { type: ["object", "null"] },
           },
         },
-        MyFollowedSourcesUpdate: {
+        FollowStateUpdate: {
           type: "object",
           properties: {
-            sourceIds: {
+            sourceId: { type: "string" },
+            isFollowed: { type: "boolean" },
+          },
+          required: ["sourceId", "isFollowed"],
+        },
+        FollowStateUpdateList: {
+          type: "array",
+          items: { $ref: "#/components/schemas/FollowStateUpdate" },
+        },
+        FollowSyncResult: {
+          type: "object",
+          properties: {
+            followed: {
+              type: "array",
+              items: { type: "string" },
+            },
+            unfollowed: {
               type: "array",
               items: { type: "string" },
             },
           },
-          required: ["sourceIds"],
         },
         Source: {
           type: "object",
@@ -230,6 +245,7 @@ const options = {
             description: { type: "string" },
             imageUrl: { type: "string", format: "uri" },
             sourceCategoryId: { type: "string" },
+            isFollowed: { type: "boolean" },
           },
         },
         SourcesResponse: {

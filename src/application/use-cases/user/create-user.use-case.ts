@@ -6,9 +6,11 @@ import { DI_TYPES } from "../../../main/container/ioc.types.js";
 import { IPasswordService } from "../../services/password.service";
 import { IIdGenerator } from "../../services/id.service";
 
+const DEFAULT_USER_NAME = process.env.DEFAULT_USER_NAME ?? "News Reader";
+const DEFAULT_USER_IMAGE_URL =
+  process.env.DEFAULT_USER_IMAGE_URL ?? "https://i.pravatar.cc/150?img=3";
+
 export interface CreateUserUseCaseInput {
-  name: string;
-  imageUrl: string;
   email: string;
   password: string;
 }
@@ -33,8 +35,8 @@ export class CreateUserUseCase {
     const hashedPassword = await this.passwordService.hash(input.password);
     const user = User.create({
       id: this.idGenerator.generate(),
-      name: input.name,
-      imageUrl: input.imageUrl,
+      name: DEFAULT_USER_NAME,
+      imageUrl: DEFAULT_USER_IMAGE_URL,
       email: input.email,
       password: hashedPassword,
     });

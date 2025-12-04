@@ -18,8 +18,8 @@ export class ListSourcesUseCase {
     private readonly sourceRepository: ISourceRepository
   ) {}
 
-  async execute(): Promise<SourceInfo[]> {
-    const sources = await this.sourceRepository.findAll();
+  async execute(searchQuery?: string): Promise<SourceInfo[]> {
+    const sources = await this.sourceRepository.findAll(searchQuery);
     return sources.map((source) => ({
       id: source.id,
       name: source.name,
