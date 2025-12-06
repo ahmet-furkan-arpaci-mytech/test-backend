@@ -7,8 +7,16 @@ import { RemoveSavedNewsUseCase } from "../../application/use-cases/saved-news/r
 import { SaveNewsUseCase } from "../../application/use-cases/saved-news/save-news.use-case.js";
 import { ResponseBuilder } from "../response/response-builder.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
+import { SavedNews } from "../../domain/saved-news/saved-news.js";
 
 type AuthenticatedRequest = Request & { user?: Record<string, any> };
+
+const toSavedNewsResponse = (savedNews: SavedNews) => ({
+  id: savedNews.id,
+  userId: savedNews.userId,
+  newsId: savedNews.newsId,
+  savedAt: savedNews.savedAt,
+});
 
 @injectable()
 export class SavedNewsController {
@@ -79,7 +87,11 @@ export class SavedNewsController {
     }
 
     const savedNews = await this.saveNewsUseCase.execute({ userId, newsId });
-    return ResponseBuilder.created(res, savedNews, "Saved news created");
+    return ResponseBuilder.created(
+      res,
+      toSavedNewsResponse(savedNews),
+      "Saved news created"
+    );
   }
 
   /**
@@ -114,7 +126,11 @@ export class SavedNewsController {
     }
 
     const savedNews = await this.listSavedNewsUseCase.execute(userId);
-    return ResponseBuilder.ok(res, savedNews, "Saved news retrieved");
+    return ResponseBuilder.ok(
+      res,
+      savedNews.map(toSavedNewsResponse),
+      "Saved news retrieved"
+    );
   }
 
   /**

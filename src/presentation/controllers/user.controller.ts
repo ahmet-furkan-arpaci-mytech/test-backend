@@ -6,8 +6,16 @@ import { CreateUserUseCase } from "../../application/use-cases/user/create-user.
 import { AuthenticateUserUseCase } from "../../application/use-cases/user/authenticate-user.use-case.js";
 import { GetUserProfileUseCase } from "../../application/use-cases/user/get-user-profile.use-case.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
+import { User } from "../../domain/user/user.js";
 
 type AuthenticatedRequest = Request & { user?: Record<string, any> };
+
+const toUserResponse = (user: User) => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  imageUrl: user.imageUrl,
+});
 
 @injectable()
 export class UserController {
@@ -55,7 +63,11 @@ export class UserController {
    */
   async createUser(req: Request, res: Response) {
     const user = await this.createUserUseCase.execute(req.body);
-    return ResponseBuilder.created(res, user, "User created");
+    return ResponseBuilder.created(
+      res,
+      toUserResponse(user),
+      "User created"
+    );
   }
 
   /**

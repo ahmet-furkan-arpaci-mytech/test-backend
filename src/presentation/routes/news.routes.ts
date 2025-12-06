@@ -18,10 +18,6 @@ export function buildNewsRouter(
   categoryController: CategoryController
 ) {
   const router = Router();
-  router.get(
-    "/filter",
-    wrapAsync(newsController.filterNews.bind(newsController))
-  );
   router.get("/", wrapAsync(newsController.listNews.bind(newsController)));
   router.get(
     "/categories",

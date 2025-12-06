@@ -154,7 +154,7 @@
             "url": {
               "raw": "{{baseUrl}}/categories/with-news?page=1&pageSize=5&isLatest=true&sourceIds={{sourceId}}&isMySourced=false"
             },
-            "description": "Demonstrates the paginated view that joins categories with recent news."
+            "description": "Paginate the shared news feed (page/pageSize count news entries, not categories) while grouping the items by category."
           },
           "response": []
         }
@@ -176,9 +176,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/news?page=1&pageSize=10"
+              "raw": "{{baseUrl}}/news?isLatest=true"
             },
-            "description": "Stores a sample `{{sourceId}}` and `{{newsId}}` for downstream requests."
+            "description": "Stores a sample `{{sourceId}}` and `{{newsId}}`; include `?isLatest=true` or `?forYou=true` to test those feeds."
           },
           "event": [
             {
@@ -200,24 +200,6 @@
               }
             }
           ],
-          "response": []
-        },
-        {
-          "name": "Filter news",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{authToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/news/filter?page=1&pageSize=5&isLatest=true&isPopular=false&sourceIds={{sourceId}}"
-            },
-            "description": "Applies the same filter logic without the joined relations."
-          },
           "response": []
         },
         {

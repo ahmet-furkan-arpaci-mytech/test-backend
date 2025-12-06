@@ -9,6 +9,7 @@ import { ListCategoriesUseCase } from "../../application/use-cases/category/list
 import { DI_TYPES } from "../../main/container/ioc.types.js";
 import { PaginatedResult } from "../../domain/common/paginated-result.js";
 import { News } from "../../domain/news/news.js";
+import { ListFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/list-followed-sources.use-case.js";
 
 const parseBooleanQuery = (value: unknown) =>
   value === "true" || value === "1" || value === true;
@@ -46,20 +47,13 @@ export class NewsController {
     @inject(DI_TYPES.ListSavedNewsUseCase)
     private readonly listSavedNewsUseCase: ListSavedNewsUseCase,
     @inject(DI_TYPES.ListCategoriesUseCase)
-    private readonly listCategoriesUseCase: ListCategoriesUseCase
+    private readonly listCategoriesUseCase: ListCategoriesUseCase,
+    @inject(DI_TYPES.ListFollowedSourcesUseCase)
+    private readonly listFollowedSourcesUseCase: ListFollowedSourcesUseCase
   ) {}
 
   private extractUserId(req: AuthenticatedRequest): string | undefined {
     return req.user?.sub ?? req.user?.id ?? req.user?.userId;
-  }
-
-  private parseFilterQuery(req: Request) {
-    const page = Number(req.query.page ?? 1);
-    const pageSize = Number(req.query.pageSize ?? 10);
-    const isLatest = parseBooleanQuery(req.query.isLatest);
-    const isPopular = parseBooleanQuery(req.query.isPopular);
-
-    return { page, pageSize, isLatest, isPopular };
   }
 
   private async loadCategoryMetadata(): Promise<Record<string, CategoryMeta>> {
@@ -107,46 +101,65 @@ export class NewsController {
    *   get:
    *     tags:
    *       - News
-   *     summary: List news with pagination and optional filters
+   *     summary: List the latest or personalized news feed (limited to 20 items)
    *     parameters:
-   *       - in: query
-   *         name: page
-   *         schema:
-   *           type: integer
-   *         description: Page number (starts at 1)
-   *       - in: query
-   *         name: pageSize
-   *         schema:
-   *           type: integer
-   *         description: Items per page
    *       - in: query
    *         name: isLatest
    *         schema:
    *           type: boolean
    *         description: When true, return only news marked as latest
    *       - in: query
-   *         name: isPopular
+   *         name: forYou
    *         schema:
    *           type: boolean
-   *         description: When true, return only news marked as popular
+   *         description: When true, show news from followed sources (requires auth)
    *     responses:
    *       200:
-   *         description: Paginated news list
+   *         description: News list
    *         content:
    *           application/json:
    *             schema:
    *               $ref: "#/components/schemas/PaginatedNews"
    */
   async listNews(req: Request, res: Response) {
-    const { page, pageSize, isLatest, isPopular } =
-      this.parseFilterQuery(req);
+    const isLatest = parseBooleanQuery(req.query.isLatest);
+    const forYou = parseBooleanQuery(req.query.forYou);
     const userId = this.extractUserId(req);
 
+    let sourceIds: string[] | undefined;
+    if (forYou) {
+      if (!userId) {
+        return ResponseBuilder.unauthorized(
+          res,
+          "User context required for personalized feed"
+        );
+      }
+      const followedSources = await this.listFollowedSourcesUseCase.execute(
+        userId
+      );
+      sourceIds = followedSources.map((source) => source.id);
+      if (!sourceIds.length) {
+        const emptyResult: PaginatedResult<News> = {
+          items: [],
+          total: 0,
+          page: 1,
+          pageSize: 20,
+        };
+        const categoryMetadata = await this.loadCategoryMetadata();
+        const augmented = await this.attachSavedStatus(
+          emptyResult,
+          userId,
+          categoryMetadata
+        );
+        return ResponseBuilder.ok(res, augmented, "News retrieved");
+      }
+    }
+
     const result = await this.listNewsUseCase.execute({
-      page,
-      pageSize,
-      isLatest,
-      isPopular,
+      page: 1,
+      pageSize: 20,
+      isLatest: isLatest ? true : undefined,
+      sourceIds,
     });
     const categoryMetadata = await this.loadCategoryMetadata();
     const augmented = await this.attachSavedStatus(
@@ -197,59 +210,4 @@ export class NewsController {
     return ResponseBuilder.ok(res, result, "News retrieved");
   }
 
-  /**
-   * @openapi
-   * /api/v1/news/filter:
-   *   get:
-   *     tags:
-   *       - News
-   *     summary: Filter news without joining related entities
-   *     parameters:
-   *       - in: query
-   *         name: page
-   *         schema:
-   *           type: integer
-   *         description: Page number (starts at 1)
-   *       - in: query
-   *         name: pageSize
-   *         schema:
-   *           type: integer
-   *         description: Items per page
-   *       - in: query
-   *         name: isLatest
-   *         schema:
-   *           type: boolean
-   *         description: When true, return only news marked as latest
-   *       - in: query
-   *         name: isPopular
-   *         schema:
-   *           type: boolean
-   *         description: When true, return only news marked as popular
-   *     responses:
-   *       200:
-   *         description: Paginated filtered news without relationships
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: "#/components/schemas/PaginatedNews"
-   */
-  async filterNews(req: Request, res: Response) {
-    const { page, pageSize, isLatest, isPopular } =
-      this.parseFilterQuery(req);
-    const userId = this.extractUserId(req);
-
-    const result = await this.listNewsUseCase.execute({
-      page,
-      pageSize,
-      isLatest,
-      isPopular,
-    });
-    const categoryMetadata = await this.loadCategoryMetadata();
-    const augmented = await this.attachSavedStatus(
-      result,
-      userId,
-      categoryMetadata
-    );
-    return ResponseBuilder.ok(res, augmented, "Filtered news retrieved");
-  }
 }

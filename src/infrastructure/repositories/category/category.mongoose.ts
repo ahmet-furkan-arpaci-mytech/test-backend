@@ -6,7 +6,8 @@ import { ICategoryRepository } from "../../../domain/repositories/category.repos
 import { NewsFilter } from "../../../domain/repositories/news.repository.interface";
 import { NewsMapper } from "../../persistence/mongoose/mappers/news.mapper";
 import { PaginatedResult } from "../../../domain/common/paginated-result";
-import type { PipelineStage } from "mongoose";
+import { News } from "../../../domain/news/news";
+import { NewsModel } from "../../persistence/mongoose/models/news.model";
 import { injectable } from "inversify";
 
 @injectable()
@@ -35,68 +36,66 @@ export class MongoCategoryRepository implements ICategoryRepository {
     const normalizedPageSize = Math.max(1, pageSize);
     const skip = (normalizedPage - 1) * normalizedPageSize;
 
-    const lookupPipeline: Exclude<
-      PipelineStage,
-      PipelineStage.Merge | PipelineStage.Out
-    >[] = [
-      { $match: this.buildNewsMatch(filter) } as PipelineStage.Match,
-      {
-        $lookup: {
-          from: "sources",
-          localField: "sourceId",
-          foreignField: "_id",
-          as: "source",
-        },
-      } as PipelineStage.Lookup,
-      {
-        $unwind: { path: "$source", preserveNullAndEmptyArrays: true },
-      } as PipelineStage.Unwind,
-      {
-        $addFields: {
-          sourceName: "$source.name",
-          categoryName: "$$categoryName",
-        },
-      } as PipelineStage.AddFields,
-      {
-        $project: {
-          source: 0,
-        },
-      } as PipelineStage.Project,
-      { $sort: { publishedAt: -1 } } as PipelineStage.Sort,
-    ];
+    const categories = await CategoryModel.find().sort({ name: 1 }).lean();
+    const categoryMap = new Map<string, Category>();
+    categories.forEach((doc) => {
+      categoryMap.set(doc._id, CategoryMapper.toDomain(doc));
+    });
+    const normalizedCategories = categories;
 
-    const lookupStage: PipelineStage.Lookup = {
-      $lookup: {
-        from: "news",
-        let: { categoryId: "$_id", categoryName: "$name" },
-        pipeline: lookupPipeline,
-        as: "news",
-      },
-    };
+    const newsFilter = this.buildNewsFilter(filter);
+    const startIndex = skip;
+    const endIndex = skip + normalizedPageSize;
 
-    const [facetResult] = await CategoryModel.aggregate([
-      { $sort: { name: 1 } },
-      {
-        $facet: {
-          items: [
-            { $skip: skip } as PipelineStage.Skip,
-            { $limit: normalizedPageSize } as PipelineStage.Limit,
-            lookupStage,
-          ],
-          total: [{ $count: "value" }],
+    const [total, newsDocs] = await Promise.all([
+      NewsModel.countDocuments(newsFilter),
+      NewsModel.aggregate([
+        { $match: newsFilter },
+        {
+          $setWindowFields: {
+            partitionBy: "$categoryId",
+            sortBy: { publishedAt: -1 },
+            output: {
+              rowNumber: { $documentNumber: {} },
+            },
+          },
         },
-      },
+        {
+          $match: {
+            rowNumber: { $gt: startIndex, $lte: endIndex },
+          },
+        },
+        { $sort: { categoryId: 1, publishedAt: -1 } },
+      ]),
     ]);
 
-    const total = facetResult?.total?.[0]?.value ?? 0;
-    const items = facetResult?.items ?? [];
+    const newsByCategory = new Map<string, News[]>();
+    newsDocs.forEach((doc: any) => {
+      const categoryId: string | undefined = doc.categoryId;
+      if (!categoryId) {
+        return;
+      }
+      const newsItem = NewsMapper.toDomain({
+        ...doc,
+        categoryName: categoryMap.get(categoryId)?.name,
+      });
+      const existing = newsByCategory.get(categoryId);
+      if (existing) {
+        existing.push(newsItem);
+      } else {
+        newsByCategory.set(categoryId, [newsItem]);
+      }
+    });
+
+    const items = normalizedCategories.map((catDoc) => {
+      const category =
+        categoryMap.get(catDoc._id) ?? CategoryMapper.toDomain(catDoc);
+      const newsList = newsByCategory.get(catDoc._id) ?? [];
+      return new CategoryWithNews(category, newsList);
+    });
 
     return {
-      items: items.map((doc: any) => {
-        const category = CategoryMapper.toDomain(doc);
-        const newsItems = (doc.news ?? []).map(NewsMapper.toDomain);
-        return new CategoryWithNews(category, newsItems);
-      }),
+      items,
       total,
       page: normalizedPage,
       pageSize: normalizedPageSize,
@@ -119,19 +118,17 @@ export class MongoCategoryRepository implements ICategoryRepository {
     await CategoryModel.findByIdAndDelete(id);
   }
 
-  private buildNewsMatch(filter: NewsFilter): Record<string, any> {
-    const match: Record<string, any> = {
-      $expr: { $eq: ["$categoryId", "$$categoryId"] },
-    };
+  private buildNewsFilter(filter: NewsFilter): Record<string, any> {
+    const query: Record<string, any> = {};
     if (filter.isLatest) {
-      match.isLatest = true;
+      query.isLatest = true;
     }
     if (filter.isPopular) {
-      match.isPopular = true;
+      query.isPopular = true;
     }
     if (filter.sourceIds && filter.sourceIds.length > 0) {
-      match.sourceId = { $in: filter.sourceIds };
+      query.sourceId = { $in: filter.sourceIds };
     }
-    return match;
+    return query;
   }
 }

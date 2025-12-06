@@ -62,6 +62,18 @@ export class TwitterController {
       pageSize,
       isPopular,
     });
-    return ResponseBuilder.ok(res, result, "Tweets retrieved");
+    const serialized = {
+      ...result,
+      items: result.items.map((tweet) => ({
+        id: tweet.id,
+        accountId: tweet.accountId,
+        accountName: tweet.accountName,
+        accountImageUrl: tweet.accountImageUrl,
+        content: tweet.content,
+        createdAt: tweet.createdAt,
+        isPopular: tweet.isPopular,
+      })),
+    };
+    return ResponseBuilder.ok(res, serialized, "Tweets retrieved");
   }
 }

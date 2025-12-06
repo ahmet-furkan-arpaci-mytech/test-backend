@@ -5,9 +5,33 @@ import { ResponseBuilder } from "../response/response-builder.js";
 import { ListCategoriesUseCase } from "../../application/use-cases/category/list-categories.use-case.js";
 import { ListCategoriesWithNewsUseCase } from "../../application/use-cases/category/list-categories-with-news.use-case.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
+import { Category } from "../../domain/category/category.js";
+import { News } from "../../domain/news/news.js";
 
 const parseBooleanQuery = (value: unknown) =>
   value === "true" || value === "1" || value === true;
+
+const toCategoryResponse = (category: Category) => ({
+  id: category.id,
+  name: category.name,
+  description: category.description,
+  colorCode: category.colorCode,
+  imageUrl: category.imageUrl,
+});
+
+const toNewsResponse = (news: News) => ({
+  id: news.id,
+  title: news.title,
+  content: news.content,
+  imageUrl: news.imageUrl,
+  categoryId: news.categoryId,
+  sourceId: news.sourceId,
+  publishedAt: news.publishedAt,
+  isLatest: news.isLatest,
+  isPopular: news.isPopular,
+  sourceName: news.sourceName,
+  categoryName: news.categoryName,
+});
 
 @injectable()
 export class CategoryController {
@@ -37,7 +61,11 @@ export class CategoryController {
    */
   async listCategories(req: Request, res: Response) {
     const categories = await this.listCategoriesUseCase.execute();
-    return ResponseBuilder.ok(res, categories, "Categories retrieved");
+    return ResponseBuilder.ok(
+      res,
+      categories.map(toCategoryResponse),
+      "Categories retrieved"
+    );
   }
 
   /**
@@ -46,18 +74,18 @@ export class CategoryController {
    *   get:
    *     tags:
    *       - Categories
-   *     summary: List categories along with their related news
+   *     summary: List categories grouped around the latest matching news (news pagination)
    *     parameters:
    *       - in: query
    *         name: page
    *         schema:
    *           type: integer
-   *         description: Page number (starts at 1)
+   *         description: News page number (starts at 1 and counts news entries across categories)
    *       - in: query
    *         name: pageSize
    *         schema:
    *           type: integer
-   *         description: Items per page
+   *         description: Maximum news entries returned per page (split across the categories that contain them)
    *       - in: query
    *         name: isLatest
    *         schema:
@@ -89,9 +117,18 @@ export class CategoryController {
         isLatest,
         isPopular,
       });
+      const serialized = {
+        items: result.items.map((item) => ({
+          category: toCategoryResponse(item.category),
+          news: item.news.map(toNewsResponse),
+        })),
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+      };
       return ResponseBuilder.ok(
         res,
-        result,
+        serialized,
         "Categories with news retrieved"
       );
     } catch (error) {
