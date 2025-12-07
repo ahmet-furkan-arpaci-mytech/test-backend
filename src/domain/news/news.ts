@@ -6,6 +6,8 @@ export class News {
     private _imageUrl: string,
     private readonly _categoryId: string,
     private readonly _sourceId: string,
+    private readonly _sourceProfilePictureUrl: string | undefined,
+    private readonly _sourceTitle: string | undefined,
     private _publishedAt: Date,
     private _isLatest: boolean,
     private _isPopular: boolean,
@@ -32,6 +34,8 @@ export class News {
     imageUrl: string;
     categoryId: string;
     sourceId: string;
+    sourceProfilePictureUrl?: string;
+    sourceTitle?: string;
     publishedAt?: Date;
     isLatest?: boolean;
     isPopular?: boolean;
@@ -45,6 +49,8 @@ export class News {
       props.imageUrl,
       props.categoryId,
       props.sourceId,
+      props.sourceProfilePictureUrl,
+      props.sourceTitle,
       props.publishedAt ?? new Date(),
       props.isLatest ?? false,
       props.isPopular ?? false,
@@ -75,6 +81,14 @@ export class News {
 
   get sourceId(): string {
     return this._sourceId;
+  }
+
+  get sourceProfilePictureUrl(): string | undefined {
+    return this._sourceProfilePictureUrl;
+  }
+
+  get sourceTitle(): string | undefined {
+    return this._sourceTitle;
   }
 
   get publishedAt(): Date {

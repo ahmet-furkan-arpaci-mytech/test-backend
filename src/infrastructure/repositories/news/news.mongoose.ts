@@ -7,18 +7,24 @@ import {
 import { News } from "../../../domain/news/news";
 import { NewsMapper } from "../../persistence/mongoose/mappers/news.mapper";
 import { NewsModel } from "../../persistence/mongoose/models/news.model";
+import { attachSourceMetadata } from "../../persistence/mongoose/utils/source-metadata";
 import { injectable } from "inversify";
 
 @injectable()
 export class MongoNewsRepository implements INewsRepository {
   async findById(id: string): Promise<News | null> {
     const doc = await NewsModel.findById(id).lean();
-    return doc ? NewsMapper.toDomain(doc) : null;
+    if (!doc) {
+      return null;
+    }
+    const [enriched] = await attachSourceMetadata([doc]);
+    return enriched ? NewsMapper.toDomain(enriched) : null;
   }
 
   async findAll(): Promise<News[]> {
     const docs = await NewsModel.find().lean();
-    return docs.map(NewsMapper.toDomain);
+    const enriched = await attachSourceMetadata(docs);
+    return enriched.map(NewsMapper.toDomain);
   }
 
   async findAllPaginated(
@@ -30,7 +36,8 @@ export class MongoNewsRepository implements INewsRepository {
 
   async findByCategoryId(categoryId: string): Promise<News[]> {
     const docs = await NewsModel.find({ categoryId }).lean();
-    return docs.map(NewsMapper.toDomain);
+    const enriched = await attachSourceMetadata(docs);
+    return enriched.map(NewsMapper.toDomain);
   }
 
   async findByCategoryIdPaginated(
@@ -92,8 +99,10 @@ export class MongoNewsRepository implements INewsRepository {
       NewsModel.find(filter).skip(skip).limit(normalizedPageSize).lean(),
     ]);
 
+    const enrichedDocs = await attachSourceMetadata(docs);
+
     return {
-      items: docs.map(NewsMapper.toDomain),
+      items: enrichedDocs.map(NewsMapper.toDomain),
       total,
       page: normalizedPage,
       pageSize: normalizedPageSize,

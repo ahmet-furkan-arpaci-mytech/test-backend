@@ -52,7 +52,10 @@ function buildCategories() {
   }));
 }
 
-function buildNews(categories: { _id: string }[], sources: { _id: string }[]) {
+function buildNews(
+  categories: { _id: string }[],
+  sources: { _id: string; imageUrl: string; name: string }[]
+) {
   return Array.from({ length: NEWS_COUNT }, () => {
     const category = faker.helpers.arrayElement(categories)!;
     const source = faker.helpers.arrayElement(sources)!;
@@ -63,6 +66,8 @@ function buildNews(categories: { _id: string }[], sources: { _id: string }[]) {
       imageUrl: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
       categoryId: category._id,
       sourceId: source._id,
+      sourceProfilePictureUrl: source.imageUrl,
+      sourceTitle: source.name,
       publishedAt: faker.date.recent({ days: 90 }),
       isLatest: faker.datatype.boolean(),
       isPopular: faker.datatype.boolean(),

@@ -8,6 +8,7 @@ import { NewsMapper } from "../../persistence/mongoose/mappers/news.mapper";
 import { PaginatedResult } from "../../../domain/common/paginated-result";
 import { News } from "../../../domain/news/news";
 import { NewsModel } from "../../persistence/mongoose/models/news.model";
+import { attachSourceMetadata } from "../../persistence/mongoose/utils/source-metadata";
 import { injectable } from "inversify";
 
 @injectable()
@@ -69,8 +70,10 @@ export class MongoCategoryRepository implements ICategoryRepository {
       ]),
     ]);
 
+    const enrichedNewsDocs = await attachSourceMetadata(newsDocs);
+
     const newsByCategory = new Map<string, News[]>();
-    newsDocs.forEach((doc: any) => {
+    enrichedNewsDocs.forEach((doc: any) => {
       const categoryId: string | undefined = doc.categoryId;
       if (!categoryId) {
         return;

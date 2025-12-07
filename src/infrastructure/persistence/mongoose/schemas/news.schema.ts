@@ -8,6 +8,8 @@ export const NewsSchema = new Schema(
     imageUrl: { type: String, required: true },
     categoryId: { type: String, required: true },
     sourceId: { type: String, required: true },
+    sourceProfilePictureUrl: { type: String },
+    sourceTitle: { type: String },
     publishedAt: { type: Date, required: true, default: Date.now },
     isLatest: { type: Boolean, required: true, default: false },
     isPopular: { type: Boolean, required: true, default: false },

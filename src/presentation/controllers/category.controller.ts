@@ -26,6 +26,8 @@ const toNewsResponse = (news: News) => ({
   imageUrl: news.imageUrl,
   categoryId: news.categoryId,
   sourceId: news.sourceId,
+  sourceProfilePictureUrl: news.sourceProfilePictureUrl,
+  sourceTitle: news.sourceTitle,
   publishedAt: news.publishedAt,
   isLatest: news.isLatest,
   isPopular: news.isPopular,

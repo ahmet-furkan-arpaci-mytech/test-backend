@@ -27,6 +27,8 @@ type NewsResponseItem = {
   imageUrl: string;
   categoryId: string;
   sourceId: string;
+  sourceProfilePictureUrl?: string;
+  sourceTitle?: string;
   publishedAt: Date;
   isLatest: boolean;
   isPopular: boolean;
@@ -84,6 +86,8 @@ export class NewsController {
         imageUrl: news.imageUrl,
         categoryId: news.categoryId,
         sourceId: news.sourceId,
+        sourceProfilePictureUrl: news.sourceProfilePictureUrl,
+        sourceTitle: news.sourceTitle,
         publishedAt: news.publishedAt,
         isLatest: news.isLatest,
         isPopular: news.isPopular,

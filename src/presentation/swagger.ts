@@ -121,6 +121,8 @@ const options = {
             imageUrl: { type: "string", format: "uri" },
             categoryId: { type: "string" },
             sourceId: { type: "string" },
+            sourceProfilePictureUrl: { type: "string", format: "uri" },
+            sourceTitle: { type: "string" },
             publishedAt: { type: "string", format: "date-time" },
             isLatest: { type: "boolean" },
             isPopular: { type: "boolean" },
