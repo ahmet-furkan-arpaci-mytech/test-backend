@@ -3,11 +3,11 @@ import { CategoryMapper } from "../../persistence/mongoose/mappers/category.mapp
 import { CategoryModel } from "../../persistence/mongoose/models/category.model";
 import { CategoryWithNews } from "../../../domain/category/category-with-news";
 import { ICategoryRepository } from "../../../domain/repositories/category.repository.interface";
+import { News } from "../../../domain/news/news";
 import { NewsFilter } from "../../../domain/repositories/news.repository.interface";
 import { NewsMapper } from "../../persistence/mongoose/mappers/news.mapper";
-import { PaginatedResult } from "../../../domain/common/paginated-result";
-import { News } from "../../../domain/news/news";
 import { NewsModel } from "../../persistence/mongoose/models/news.model";
+import { PaginatedResult } from "../../../domain/common/paginated-result";
 import { attachSourceMetadata } from "../../persistence/mongoose/utils/source-metadata";
 import { injectable } from "inversify";
 

@@ -94,10 +94,10 @@ export class CategoryController {
    *           type: boolean
    *         description: When true, return only news marked as latest
    *       - in: query
-   *         name: isPopular
+   *         name: forYou
    *         schema:
    *           type: boolean
-   *         description: When true, return only news marked as popular
+   *         description: When true, show news from followed sources (requires auth)
    *     responses:
    *       200:
    *         description: Paginated categories with news retrieved
@@ -110,7 +110,7 @@ export class CategoryController {
     const page = Number(req.query.page ?? 1);
     const pageSize = Number(req.query.pageSize ?? 10);
     const isLatest = parseBooleanQuery(req.query.isLatest);
-    const isPopular = parseBooleanQuery(req.query.isPopular);
+    const isPopular = parseBooleanQuery(req.query.forYou);
 
     try {
       const result = await this.listCategoriesWithNewsUseCase.execute({

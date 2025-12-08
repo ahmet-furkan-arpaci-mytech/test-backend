@@ -113,6 +113,7 @@ export class UserController {
    *     summary: Get the authenticated user's profile
    *     security:
    *       - BearerAuth: []
+   *       - ApiKeyAuth: []
    *     responses:
    *       200:
    *         description: Profile returned

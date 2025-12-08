@@ -62,6 +62,7 @@ export class UserSourceFollowController {
    *     summary: Search sources by name
    *     security:
    *       - BearerAuth: []
+   *       - ApiKeyAuth: []
    *     parameters:
    *       - in: query
    *         name: search
@@ -144,6 +145,7 @@ export class UserSourceFollowController {
    *     summary: Sync multiple follow changes at once
    *     security:
    *       - BearerAuth: []
+   *       - ApiKeyAuth: []
    *     requestBody:
    *       required: true
    *       content:

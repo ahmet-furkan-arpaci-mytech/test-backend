@@ -42,6 +42,7 @@ export class SavedNewsController {
    *     summary: Save a news item for the authenticated user
    *     security:
    *       - BearerAuth: []
+   *       - ApiKeyAuth: []
    *     requestBody:
    *       required: true
    *       content:
@@ -103,6 +104,7 @@ export class SavedNewsController {
    *     summary: List saved news for the authenticated user
    *     security:
    *       - BearerAuth: []
+   *       - ApiKeyAuth: []
    *     responses:
    *       200:
    *         description: Saved news list
@@ -142,6 +144,7 @@ export class SavedNewsController {
    *     summary: Remove a saved news entry
    *     security:
    *       - BearerAuth: []
+   *       - ApiKeyAuth: []
    *     parameters:
    *       - in: path
    *         name: savedNewsId
