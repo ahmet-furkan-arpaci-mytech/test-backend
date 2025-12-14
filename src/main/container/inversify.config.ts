@@ -26,10 +26,12 @@ import { ITwitterRepository } from "../../domain/repositories/twitter.repository
 import { IUserRepository } from "../../domain/repositories/user.repository.interface.js";
 import { IUserSourceFollowRepository } from "../../domain/repositories/user-source-follow.repository.interface.js";
 import { ISourceRepository } from "../../domain/repositories/source.repository.interface.js";
+import { ISourceCategoryRepository } from "../../domain/repositories/source-category.repository.interface.js";
 import { JwtTokenService } from "../../infrastructure/security/jwt-token.service.js";
 import { ListCategoriesUseCase } from "../../application/use-cases/category/list-categories.use-case.js";
 import { ListCategoriesWithNewsUseCase } from "../../application/use-cases/category/list-categories-with-news.use-case.js";
 import { ListSourcesUseCase } from "../../application/use-cases/source/list-sources.use-case.js";
+import { ListSourcesByCategoryUseCase } from "../../application/use-cases/source/list-sources-by-category.use-case.js";
 import { ListFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/list-followed-sources.use-case.js";
 import { FollowSourceUseCase } from "../../application/use-cases/user-source-follow/follow-source.use-case.js";
 import { UnfollowSourceUseCase } from "../../application/use-cases/user-source-follow/unfollow-source.use-case.js";
@@ -47,6 +49,7 @@ import { MongoTwitterRepository } from "../../infrastructure/repositories/twitte
 import { MongoUserRepository } from "../../infrastructure/repositories/user/user.mongoose.js";
 import { MongoUserSourceFollowRepository } from "../../infrastructure/repositories/user-source-follow/user-source-follow.mongoose.js";
 import { MongoSourceRepository } from "../../infrastructure/repositories/source/source.mongoose.js";
+import { MongoSourceCategoryRepository } from "../../infrastructure/repositories/source-category/source-category.mongoose.js";
 import { NewsController } from "../../presentation/controllers/news.controller.js";
 import { RemoveSavedNewsUseCase } from "../../application/use-cases/saved-news/remove-saved-news.use-case.js";
 import { SaveNewsUseCase } from "../../application/use-cases/saved-news/save-news.use-case.js";
@@ -93,6 +96,10 @@ container
 container
   .bind<ISourceRepository>(DI_TYPES.SourceRepository)
   .to(MongoSourceRepository)
+  .inSingletonScope();
+container
+  .bind<ISourceCategoryRepository>(DI_TYPES.SourceCategoryRepository)
+  .to(MongoSourceCategoryRepository)
   .inSingletonScope();
 
 container
@@ -152,6 +159,9 @@ container
 container
   .bind<ListSourcesUseCase>(DI_TYPES.ListSourcesUseCase)
   .to(ListSourcesUseCase);
+container
+  .bind<ListSourcesByCategoryUseCase>(DI_TYPES.ListSourcesByCategoryUseCase)
+  .to(ListSourcesByCategoryUseCase);
 container
   .bind<ListFollowedSourcesUseCase>(DI_TYPES.ListFollowedSourcesUseCase)
   .to(ListFollowedSourcesUseCase);

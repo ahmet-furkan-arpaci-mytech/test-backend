@@ -248,6 +248,7 @@ const options = {
             description: { type: "string" },
             imageUrl: { type: "string", format: "uri" },
             sourceCategoryId: { type: "string" },
+            sourceCategoryTitle: { type: "string" },
             isFollowed: { type: "boolean" },
           },
         },

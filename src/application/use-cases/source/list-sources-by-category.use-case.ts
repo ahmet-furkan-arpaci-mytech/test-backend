@@ -3,18 +3,10 @@ import { inject, injectable } from "inversify";
 import { ICategoryRepository } from "../../../domain/repositories/category.repository.interface";
 import { ISourceRepository } from "../../../domain/repositories/source.repository.interface";
 import { DI_TYPES } from "../../../main/container/ioc.types.js";
-
-export interface SourceInfo {
-  id: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  sourceCategoryId: string;
-  sourceCategoryTitle?: string;
-}
+import { SourceInfo } from "./list-sources.use-case.js";
 
 @injectable()
-export class ListSourcesUseCase {
+export class ListSourcesByCategoryUseCase {
   constructor(
     @inject(DI_TYPES.SourceRepository)
     private readonly sourceRepository: ISourceRepository,
@@ -22,22 +14,24 @@ export class ListSourcesUseCase {
     private readonly categoryRepository: ICategoryRepository
   ) {}
 
-  async execute(searchQuery?: string): Promise<SourceInfo[]> {
-    const [sources, categories] = await Promise.all([
-      this.sourceRepository.findAll(searchQuery),
-      this.categoryRepository.findAll(),
-    ]);
-    const categoryNameById = new Map(
-      categories.map((category) => [category.id, category.name])
-    );
+  async execute(categoryId: string): Promise<SourceInfo[]> {
+    const normalizedCategoryId =
+      typeof categoryId === "string" ? categoryId.trim() : "";
+    if (!normalizedCategoryId) {
+      throw new Error("categoryId is required");
+    }
 
+    const [sources, category] = await Promise.all([
+      this.sourceRepository.findByCategoryId(normalizedCategoryId),
+      this.categoryRepository.findById(normalizedCategoryId),
+    ]);
     return sources.map((source) => ({
       id: source.id,
       name: source.name,
       description: source.description,
       imageUrl: source.imageUrl,
       sourceCategoryId: source.sourceCategoryId,
-      sourceCategoryTitle: categoryNameById.get(source.sourceCategoryId),
+      sourceCategoryTitle: category?.name,
     }));
   }
 }

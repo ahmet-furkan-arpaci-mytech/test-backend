@@ -34,4 +34,11 @@ export class MongoSourceRepository implements ISourceRepository {
   async delete(id: string): Promise<void> {
     await SourceModel.findByIdAndDelete(id);
   }
+
+  async findByCategoryId(categoryId: string): Promise<Source[]> {
+    const docs = await SourceModel.find({
+      sourceCategoryId: categoryId,
+    }).lean();
+    return docs.map(SourceMapper.toDomain);
+  }
 }

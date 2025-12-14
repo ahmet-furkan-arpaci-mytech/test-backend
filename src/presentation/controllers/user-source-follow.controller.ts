@@ -3,6 +3,7 @@ import { inject, injectable } from "inversify";
 
 import { ResponseBuilder } from "../response/response-builder.js";
 import { ListSourcesUseCase } from "../../application/use-cases/source/list-sources.use-case.js";
+import { ListSourcesByCategoryUseCase } from "../../application/use-cases/source/list-sources-by-category.use-case.js";
 import { ListFollowedSourcesUseCase } from "../../application/use-cases/user-source-follow/list-followed-sources.use-case.js";
 import { FollowSourceUseCase } from "../../application/use-cases/user-source-follow/follow-source.use-case.js";
 import {
@@ -19,6 +20,8 @@ export class UserSourceFollowController {
   constructor(
     @inject(DI_TYPES.ListSourcesUseCase)
     private readonly listSourcesUseCase: ListSourcesUseCase,
+    @inject(DI_TYPES.ListSourcesByCategoryUseCase)
+    private readonly listSourcesByCategoryUseCase: ListSourcesByCategoryUseCase,
     @inject(DI_TYPES.ListFollowedSourcesUseCase)
     private readonly listFollowedSourcesUseCase: ListFollowedSourcesUseCase,
     @inject(DI_TYPES.FollowSourceUseCase)
@@ -48,9 +51,66 @@ export class UserSourceFollowController {
    *             schema:
    *               $ref: "#/components/schemas/SourcesResponse"
    */
-  async getAllSources(req: Request, res: Response) {
-    const sources = await this.listSourcesUseCase.execute();
-    return ResponseBuilder.ok(res, { sources }, "Sources retrieved");
+  async getAllSources(req: AuthenticatedRequest, res: Response) {
+    const userId = this.extractUserId(req);
+    const [sources, followedSources] = await Promise.all([
+      this.listSourcesUseCase.execute(),
+      userId ? this.listFollowedSourcesUseCase.execute(userId) : Promise.resolve([]),
+    ]);
+    const followedIds = new Set(followedSources.map((source) => source.id));
+    const enriched = sources.map((source) => ({
+      ...source,
+      isFollowed: followedIds.has(source.id),
+    }));
+    return ResponseBuilder.ok(res, { sources: enriched }, "Sources retrieved");
+  }
+
+  /**
+   * @openapi
+   * /api/v1/sources/by-category/{categoryId}:
+   *   get:
+   *     tags:
+   *       - Sources
+   *     summary: List sources by source category
+   *     parameters:
+   *       - in: path
+   *         name: categoryId
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Sources retrieved
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/SourcesResponse"
+   *       400:
+   *         description: Validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/ErrorResponse"
+   */
+  async getSourcesByCategory(req: AuthenticatedRequest, res: Response) {
+    const { categoryId } = req.params;
+    if (!categoryId) {
+      return ResponseBuilder.badRequest(res, "categoryId is required");
+    }
+
+    const userId = this.extractUserId(req);
+    const [sources, followedSources] = await Promise.all([
+      this.listSourcesByCategoryUseCase.execute(categoryId),
+      userId ? this.listFollowedSourcesUseCase.execute(userId) : Promise.resolve([]),
+    ]);
+
+    const followedIds = new Set(followedSources.map((source) => source.id));
+    const enriched = sources.map((source) => ({
+      ...source,
+      isFollowed: followedIds.has(source.id),
+    }));
+
+    return ResponseBuilder.ok(res, { sources: enriched }, "Sources retrieved");
   }
 
   /**

@@ -21,7 +21,6 @@ const SAVED_NEWS_PER_USER = 100;
 const TWEET_COUNT = 120;
 const TWITTER_ACCOUNT_COUNT = 40;
 const USER_COUNT = 10;
-const SOURCE_CATEGORY_COUNT = 3;
 const SOURCE_COUNT = 30;
 
 const idGenerator = new UuidGenerator();
@@ -143,17 +142,9 @@ async function buildUsers() {
   return users;
 }
 
-function buildSourceCategories() {
-  return Array.from({ length: SOURCE_CATEGORY_COUNT }, () => ({
-    _id: idGenerator.generate(),
-    name: faker.word.words({ count: { min: 1, max: 2 } }),
-    description: faker.lorem.sentence(),
-  }));
-}
-
-function buildSources(sourceCategories: { _id: string }[]) {
+function buildSources(categories: { _id: string; name: string; description: string }[]) {
   return Array.from({ length: SOURCE_COUNT }, () => {
-    const category = faker.helpers.arrayElement(sourceCategories)!;
+    const category = faker.helpers.arrayElement(categories)!;
     return {
       _id: idGenerator.generate(),
       name: faker.company.name(),
@@ -232,11 +223,17 @@ async function main() {
   await CategoryModel.insertMany(categories);
   console.log(`Inserted ${categories.length} categories.`);
 
-  const sourceCategories = buildSourceCategories();
+  const sourceCategories = categories.map(({ _id, name, description }) => ({
+    _id,
+    name,
+    description,
+  }));
   await SourceCategoryModel.insertMany(sourceCategories);
-  console.log(`Inserted ${sourceCategories.length} source categories.`);
+  console.log(
+    `Inserted ${sourceCategories.length} source categories (mirroring categories).`
+  );
 
-  const sources = buildSources(sourceCategories);
+  const sources = buildSources(categories);
   await SourceModel.insertMany(sources);
   console.log(`Inserted ${sources.length} sources.`);
 

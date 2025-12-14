@@ -1,6 +1,7 @@
 export const DI_TYPES = {
   UserRepository: Symbol.for("UserRepository"),
   CategoryRepository: Symbol.for("CategoryRepository"),
+  SourceCategoryRepository: Symbol.for("SourceCategoryRepository"),
   NewsRepository: Symbol.for("NewsRepository"),
   SavedNewsRepository: Symbol.for("SavedNewsRepository"),
   UserSourceFollowRepository: Symbol.for("UserSourceFollowRepository"),
@@ -20,6 +21,7 @@ export const DI_TYPES = {
   ListSavedNewsUseCase: Symbol.for("ListSavedNewsUseCase"),
   RemoveSavedNewsUseCase: Symbol.for("RemoveSavedNewsUseCase"),
   ListSourcesUseCase: Symbol.for("ListSourcesUseCase"),
+  ListSourcesByCategoryUseCase: Symbol.for("ListSourcesByCategoryUseCase"),
   ListFollowedSourcesUseCase: Symbol.for("ListFollowedSourcesUseCase"),
   FollowSourceUseCase: Symbol.for("FollowSourceUseCase"),
   UnfollowSourceUseCase: Symbol.for("UnfollowSourceUseCase"),

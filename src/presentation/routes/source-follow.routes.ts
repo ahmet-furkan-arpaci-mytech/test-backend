@@ -15,6 +15,10 @@ const wrapAsync =
 export function buildSourceFollowRouter(controller: UserSourceFollowController) {
   const router = Router();
   router.get("/", wrapAsync(controller.getAllSources.bind(controller)));
+  router.get(
+    "/by-category/:categoryId",
+    wrapAsync(controller.getSourcesByCategory.bind(controller))
+  );
   router.get("/search", wrapAsync(controller.searchSources.bind(controller)));
   router.get("/followed", wrapAsync(controller.getFollowedSources.bind(controller)));
   router.post(
