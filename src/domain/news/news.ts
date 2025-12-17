@@ -9,6 +9,7 @@ export class News {
     private readonly _sourceProfilePictureUrl: string | undefined,
     private readonly _sourceTitle: string | undefined,
     private _publishedAt: Date,
+    private _isSaved: boolean = false,
     private _isLatest: boolean,
     private _isPopular: boolean,
     private readonly _sourceName?: string,
@@ -37,6 +38,7 @@ export class News {
     sourceProfilePictureUrl?: string;
     sourceTitle?: string;
     publishedAt?: Date;
+    isSaved?: boolean;
     isLatest?: boolean;
     isPopular?: boolean;
     sourceName?: string;
@@ -52,6 +54,7 @@ export class News {
       props.sourceProfilePictureUrl,
       props.sourceTitle,
       props.publishedAt ?? new Date(),
+      props.isSaved ?? false,
       props.isLatest ?? false,
       props.isPopular ?? false,
       props.sourceName,
@@ -111,6 +114,10 @@ export class News {
     return this._categoryName;
   }
 
+  get isSaved(): boolean {
+    return this._isSaved;
+  }
+
   updateTitle(title: string) {
     if (!title || title.trim() === "") {
       throw new Error("News title cannot be empty.");
@@ -120,6 +127,10 @@ export class News {
 
   updateContent(content: string) {
     this._content = content;
+  }
+
+  updateIsSaved(isSaved: boolean) {
+    this._isSaved = isSaved;
   }
 
   updateImage(url: string) {

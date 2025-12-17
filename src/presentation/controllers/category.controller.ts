@@ -4,9 +4,12 @@ import { inject, injectable } from "inversify";
 import { ResponseBuilder } from "../response/response-builder.js";
 import { ListCategoriesUseCase } from "../../application/use-cases/category/list-categories.use-case.js";
 import { ListCategoriesWithNewsUseCase } from "../../application/use-cases/category/list-categories-with-news.use-case.js";
+import { ListSavedNewsUseCase } from "../../application/use-cases/saved-news/list-saved-news.use-case.js";
 import { DI_TYPES } from "../../main/container/ioc.types.js";
 import { Category } from "../../domain/category/category.js";
 import { News } from "../../domain/news/news.js";
+
+type AuthenticatedRequest = Request & { user?: Record<string, any> };
 
 const parseBooleanQuery = (value: unknown) =>
   value === "true" || value === "1" || value === true;
@@ -29,6 +32,7 @@ const toNewsResponse = (news: News) => ({
   sourceProfilePictureUrl: news.sourceProfilePictureUrl,
   sourceTitle: news.sourceTitle,
   publishedAt: news.publishedAt,
+  isSaved: news.isSaved,
   isLatest: news.isLatest,
   isPopular: news.isPopular,
   sourceName: news.sourceName,
@@ -41,8 +45,23 @@ export class CategoryController {
     @inject(DI_TYPES.ListCategoriesUseCase)
     private readonly listCategoriesUseCase: ListCategoriesUseCase,
     @inject(DI_TYPES.ListCategoriesWithNewsUseCase)
-    private readonly listCategoriesWithNewsUseCase: ListCategoriesWithNewsUseCase
+    private readonly listCategoriesWithNewsUseCase: ListCategoriesWithNewsUseCase,
+    @inject(DI_TYPES.ListSavedNewsUseCase)
+    private readonly listSavedNewsUseCase: ListSavedNewsUseCase
   ) {}
+
+  private extractUserId(req: AuthenticatedRequest): string | undefined {
+    return req.user?.sub ?? req.user?.id ?? req.user?.userId;
+  }
+
+  private async loadSavedNewsIds(userId?: string): Promise<Set<string>> {
+    if (!userId) {
+      return new Set();
+    }
+
+    const savedNews = await this.listSavedNewsUseCase.execute(userId);
+    return new Set(savedNews.map((entry) => entry.newsId));
+  }
 
   /**
    * @openapi
@@ -106,24 +125,35 @@ export class CategoryController {
    *             schema:
    *               $ref: "#/components/schemas/PaginatedCategoriesWithNews"
    */
-  async listCategoriesWithNews(req: Request, res: Response) {
+  async listCategoriesWithNews(req: AuthenticatedRequest, res: Response) {
     const page = Number(req.query.page ?? 1);
     const pageSize = Number(req.query.pageSize ?? 10);
     const isLatest = parseBooleanQuery(req.query.isLatest);
     const isPopular = parseBooleanQuery(req.query.forYou);
+    const userId = this.extractUserId(req);
 
     try {
-      const result = await this.listCategoriesWithNewsUseCase.execute({
-        page,
-        pageSize,
-        isLatest,
-        isPopular,
-      });
+      const [result, savedNewsIds] = await Promise.all([
+        this.listCategoriesWithNewsUseCase.execute({
+          page,
+          pageSize,
+          isLatest,
+          isPopular,
+        }),
+        this.loadSavedNewsIds(userId),
+      ]);
+
       const serialized = {
-        items: result.items.map((item) => ({
-          category: toCategoryResponse(item.category),
-          news: item.news.map(toNewsResponse),
-        })),
+        items: result.items.map((item) => {
+          const news = item.news.map((n) => ({
+            ...toNewsResponse(n),
+            isSaved: savedNewsIds.has(n.id),
+          }));
+          return {
+            category: toCategoryResponse(item.category),
+            news,
+          };
+        }),
         total: result.total,
         page: result.page,
         pageSize: result.pageSize,
