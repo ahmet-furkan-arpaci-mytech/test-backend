@@ -13,8 +13,15 @@ export class MongoSavedNewsRepository implements ISavedNewsRepository {
     const docs = await SavedNewsModel.find({ userId }).lean();
     return docs.map(SavedNewsMapper.toDomain);
   }
+  async findByNewsId(newsId: string): Promise<SavedNews | null> {
+    const doc = await SavedNewsModel.findOne({ newsId }).lean();
+    return doc ? SavedNewsMapper.toDomain(doc) : null;
+  }
 
-  async findByUserAndNews(userId: string, newsId: string): Promise<SavedNews | null> {
+  async findByUserAndNews(
+    userId: string,
+    newsId: string
+  ): Promise<SavedNews | null> {
     const doc = await SavedNewsModel.findOne({ userId, newsId }).lean();
     return doc ? SavedNewsMapper.toDomain(doc) : null;
   }
@@ -26,7 +33,7 @@ export class MongoSavedNewsRepository implements ISavedNewsRepository {
     });
   }
 
-  async delete(id: string): Promise<void> {
-    await SavedNewsModel.findByIdAndDelete(id);
+  async delete(newsId: string, userId: string): Promise<void> {
+    await SavedNewsModel.findOneAndDelete({ newsId: newsId, userId: userId });
   }
 }

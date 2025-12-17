@@ -16,11 +16,13 @@ export class RemoveSavedNewsUseCase {
   ) {}
 
   async execute(input: RemoveSavedNewsUseCaseInput): Promise<void> {
-    const savedNews = await this.savedNewsRepository.findById(input.savedNewsId);
+    const savedNews = await this.savedNewsRepository.findByNewsId(
+      input.savedNewsId
+    );
     if (!savedNews || savedNews.userId !== input.userId) {
       throw new Error("Saved news not found.");
     }
 
-    await this.savedNewsRepository.delete(input.savedNewsId);
+    await this.savedNewsRepository.delete(input.savedNewsId, input.userId);
   }
 }
