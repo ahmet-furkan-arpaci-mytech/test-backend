@@ -169,14 +169,14 @@ export class SavedNewsController {
       return ResponseBuilder.unauthorized(res, "User context required");
     }
 
-    const savedNewsId = req.params.savedNewsId;
-    if (!savedNewsId) {
+    const newsId = req.params.savedNewsId;
+    if (!newsId) {
       throw new AppError("savedNewsId path parameter is required", 400);
     }
 
     await this.removeSavedNewsUseCase.execute({
       userId,
-      savedNewsId,
+      newsId,
     });
 
     return ResponseBuilder.noContent(res);
